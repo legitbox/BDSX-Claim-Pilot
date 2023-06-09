@@ -2,5 +2,5 @@
 # BDSX-Claim-Pilot
 A really robust and simple claiming plugin for BDSX
 
-# Find problems or want to suggest something, hop on our server on Discord!
+# Find problems or want to suggest something? Hop on our server on Discord!
 https://discord.gg/wgzjvP2n4X
