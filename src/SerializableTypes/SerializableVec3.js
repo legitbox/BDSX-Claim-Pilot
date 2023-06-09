@@ -1,0 +1,48 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SerializableVec3 = void 0;
+class SerializableVec3 {
+    constructor(vec) {
+        this.x = vec.x;
+        this.y = vec.y;
+        this.z = vec.z;
+    }
+    static fromData(data) {
+        return new SerializableVec3(data);
+    }
+    distanceTo(point) {
+        const deltaX = point.x - this.x;
+        const deltaY = point.y - this.y;
+        const deltaZ = point.z - this.z;
+        const distanceSquared = deltaX ** 2 + deltaY ** 2 + deltaZ ** 2;
+        return Math.sqrt(distanceSquared);
+    }
+    moveToward(point, distance) {
+        const direction = (new SerializableVec3({
+            x: point.x - this.x,
+            y: point.y - this.y,
+            z: point.z - this.z,
+        })).normalize();
+        const deltaX = direction.x * distance;
+        const deltaY = direction.y * distance;
+        const deltaZ = direction.z * distance;
+        return new SerializableVec3({
+            x: this.x + deltaX,
+            y: this.y + deltaY,
+            z: this.z + deltaZ,
+        });
+    }
+    normalize() {
+        const magnitude = this.distanceTo({ x: 0, y: 0, z: 0 });
+        return new SerializableVec3({
+            x: this.x / magnitude,
+            y: this.y / magnitude,
+            z: this.z / magnitude,
+        });
+    }
+    clone() {
+        return new SerializableVec3(this);
+    }
+}
+exports.SerializableVec3 = SerializableVec3;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiU2VyaWFsaXphYmxlVmVjMy5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIlNlcmlhbGl6YWJsZVZlYzMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBRUEsTUFBYSxnQkFBZ0I7SUFLekIsWUFBWSxHQUFjO1FBQ3RCLElBQUksQ0FBQyxDQUFDLEdBQUcsR0FBRyxDQUFDLENBQUMsQ0FBQztRQUNmLElBQUksQ0FBQyxDQUFDLEdBQUcsR0FBRyxDQUFDLENBQUMsQ0FBQztRQUNmLElBQUksQ0FBQyxDQUFDLEdBQUcsR0FBRyxDQUFDLENBQUMsQ0FBQztJQUNuQixDQUFDO0lBRUQsTUFBTSxDQUFDLFFBQVEsQ0FBQyxJQUFTO1FBQ3JCLE9BQU8sSUFBSSxnQkFBZ0IsQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUN0QyxDQUFDO0lBRUQsVUFBVSxDQUFDLEtBQWdCO1FBQ3ZCLE1BQU0sTUFBTSxHQUFHLEtBQUssQ0FBQyxDQUFDLEdBQUcsSUFBSSxDQUFDLENBQUMsQ0FBQztRQUNoQyxNQUFNLE1BQU0sR0FBRyxLQUFLLENBQUMsQ0FBQyxHQUFHLElBQUksQ0FBQyxDQUFDLENBQUM7UUFDaEMsTUFBTSxNQUFNLEdBQUcsS0FBSyxDQUFDLENBQUMsR0FBRyxJQUFJLENBQUMsQ0FBQyxDQUFDO1FBRWhDLE1BQU0sZUFBZSxHQUFHLE1BQU0sSUFBSSxDQUFDLEdBQUcsTUFBTSxJQUFJLENBQUMsR0FBRyxNQUFNLElBQUksQ0FBQyxDQUFDO1FBQ2hFLE9BQU8sSUFBSSxDQUFDLElBQUksQ0FBQyxlQUFlLENBQUMsQ0FBQztJQUN0QyxDQUFDO0lBRUQsVUFBVSxDQUFDLEtBQWdCLEVBQUUsUUFBZ0I7UUFDekMsTUFBTSxTQUFTLEdBQUcsQ0FBQyxJQUFJLGdCQUFnQixDQUFDO1lBQ3BDLENBQUMsRUFBRSxLQUFLLENBQUMsQ0FBQyxHQUFHLElBQUksQ0FBQyxDQUFDO1lBQ25CLENBQUMsRUFBRSxLQUFLLENBQUMsQ0FBQyxHQUFHLElBQUksQ0FBQyxDQUFDO1lBQ25CLENBQUMsRUFBRSxLQUFLLENBQUMsQ0FBQyxHQUFHLElBQUksQ0FBQyxDQUFDO1NBQ3RCLENBQUMsQ0FBQyxDQUFDLFNBQVMsRUFBRSxDQUFDO1FBRWhCLE1BQU0sTUFBTSxHQUFHLFNBQVMsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDO1FBQ3RDLE1BQU0sTUFBTSxHQUFHLFNBQVMsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDO1FBQ3RDLE1BQU0sTUFBTSxHQUFHLFNBQVMsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDO1FBRXRDLE9BQU8sSUFBSSxnQkFBZ0IsQ0FBQztZQUN4QixDQUFDLEVBQUUsSUFBSSxDQUFDLENBQUMsR0FBRyxNQUFNO1lBQ2xCLENBQUMsRUFBRSxJQUFJLENBQUMsQ0FBQyxHQUFHLE1BQU07WUFDbEIsQ0FBQyxFQUFFLElBQUksQ0FBQyxDQUFDLEdBQUcsTUFBTTtTQUNyQixDQUFDLENBQUM7SUFDUCxDQUFDO0lBRUQsU0FBUztRQUNMLE1BQU0sU0FBUyxHQUFHLElBQUksQ0FBQyxVQUFVLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxFQUFFLENBQUMsRUFBRSxDQUFDLEVBQUUsQ0FBQyxFQUFFLENBQUMsRUFBRSxDQUFDLENBQUM7UUFDeEQsT0FBTyxJQUFJLGdCQUFnQixDQUFDO1lBQ3hCLENBQUMsRUFBRSxJQUFJLENBQUMsQ0FBQyxHQUFHLFNBQVM7WUFDckIsQ0FBQyxFQUFFLElBQUksQ0FBQyxDQUFDLEdBQUcsU0FBUztZQUNyQixDQUFDLEVBQUUsSUFBSSxDQUFDLENBQUMsR0FBRyxTQUFTO1NBQ3hCLENBQUMsQ0FBQztJQUNQLENBQUM7SUFFRCxLQUFLO1FBQ0QsT0FBTyxJQUFJLGdCQUFnQixDQUFDLElBQUksQ0FBQyxDQUFDO0lBQ3RDLENBQUM7Q0FDSjtBQXRERCw0Q0FzREMifQ==

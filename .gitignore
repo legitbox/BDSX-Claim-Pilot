@@ -2,7 +2,7 @@
 node_modules/
 
 # Ignore compiled JavaScript files
-*.js
+# *.js
 
 # Ignore package-lock.json (npm lockfile)
 package-lock.json
