@@ -26,3 +26,6 @@ package-lock.json
 
 # Ignore yarn.lock (Yarn lockfile)
 yarn.lock
+
+# Ignore claim storage
+./src/Storage/claimsData.json

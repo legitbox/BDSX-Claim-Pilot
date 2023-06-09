@@ -34,7 +34,20 @@ function loadData() {
         return;
     }
 
-    const data = JSON.parse(readFileSync(STORAGE_PATH, 'utf-8'));
+    const fileData = readFileSync(STORAGE_PATH, 'utf-8');
+    let data: any | undefined;
+    try {
+        data = JSON.parse(fileData);
+    } catch {
+        writeFileSync(__dirname + `\\claimsData-ERR-${Date.now()}.json`, fileData);
+        console.error('ERROR LOADING STORAGE: INVALID JSON'.red);
+        data = undefined;
+    }
+
+    if (data === undefined) {
+        return;
+    }
+
     const xuids = Object.keys(data);
     for (const xuid of xuids) {
         const playerData = data[xuid];
