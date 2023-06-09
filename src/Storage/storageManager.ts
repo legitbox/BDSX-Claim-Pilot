@@ -1,10 +1,10 @@
-import {BlockInfo, getAllPlayerBlockPairs, setPlayerBlockInfo} from "@bdsx/claim-pilot/src/claims/claimBlocksManager";
-import {Claim, getOwnedClaims, registerClaim, registerServerClaim} from "@bdsx/claim-pilot/src/claims/claim";
+import {BlockInfo, getAllPlayerBlockPairs, setPlayerBlockInfo} from "../claims/claimBlocksManager";
+import {Claim, getOwnedClaims, registerClaim, registerServerClaim} from "../claims/claim";
 import {readFileSync, writeFileSync} from "fs";
 import {fsutil} from "bdsx/fsutil";
 import isFileSync = fsutil.isFileSync;
 import {events} from "bdsx/event";
-import {getTimeRewardedFor, getTotalTime, setPlayerPlaytime} from "@bdsx/claim-pilot/src/playerPlaytime/playtime";
+import {getTimeRewardedFor, getTotalTime, setPlayerPlaytime} from "../playerPlaytime/playtime";
 
 const STORAGE_PATH = __dirname + '\\claimsData.json';
 

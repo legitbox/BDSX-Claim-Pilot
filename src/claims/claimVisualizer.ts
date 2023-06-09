@@ -1,9 +1,9 @@
 import {ServerPlayer} from "bdsx/bds/player";
-import {SneakToggleEvent} from "@bdsx/claim-pilot/src/events/sneakToggleEvent";
-import {deleteItemFromArray, generateBox, getPlayersFromXuids, isWand} from "@bdsx/claim-pilot/src/utils";
+import {SneakToggleEvent} from "../events/sneakToggleEvent";
+import {deleteItemFromArray, generateBox, getPlayersFromXuids, isWand} from "../utils";
 import {events} from "bdsx/event";
-import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
-import {getOwnedClaims} from "@bdsx/claim-pilot/src/claims/claim";
+import {CONFIG} from "../configManager";
+import {getOwnedClaims} from "./claim";
 import {bedrockServer} from "bdsx/launcher";
 import {Vec3} from "bdsx/bds/blockpos";
 import {MinecraftPacketIds} from "bdsx/bds/packetids";

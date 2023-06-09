@@ -1,11 +1,11 @@
-import {SerializableVec3} from "@bdsx/claim-pilot/src/SerializableTypes/SerializableVec3";
-import {BoxCorners, generateID, getNumOfBlocksInBox, isBoxOverlapping, isPointInBox, organizeCorners} from "@bdsx/claim-pilot/src/utils";
-import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
+import {SerializableVec3} from "../SerializableTypes/SerializableVec3";
+import {BoxCorners, generateID, getNumOfBlocksInBox, isBoxOverlapping, isPointInBox, organizeCorners} from "../utils";
+import {CONFIG} from "../configManager";
 import {VectorXYZ} from "bdsx/common";
 import {DimensionId} from "bdsx/bds/actor";
-import {saveData} from "@bdsx/claim-pilot/src/Storage/storageManager";
-import {freeBlocksForPlayer} from "@bdsx/claim-pilot/src/claims/claimBlocksManager";
-import {fireEvent} from "@bdsx/claim-pilot/src/events/eventStorage";
+import {saveData} from "../Storage/storageManager";
+import {freeBlocksForPlayer} from "./claimBlocksManager";
+import {fireEvent} from "../events/eventStorage";
 
 const claimMap: Map<string, Claim[]> = new Map(); // Key: OwnerXUID, value: Owned claims
 

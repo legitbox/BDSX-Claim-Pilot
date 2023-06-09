@@ -1,12 +1,12 @@
-import {SerializableVec3} from "@bdsx/claim-pilot/src/SerializableTypes/SerializableVec3";
-import {Claim, getClaimAtPos, isAnyClaimInBox, registerNewClaim} from "@bdsx/claim-pilot/src/claims/claim";
+import {SerializableVec3} from "../SerializableTypes/SerializableVec3";
+import {Claim, getClaimAtPos, isAnyClaimInBox, registerNewClaim} from "./claim";
 import {DimensionId} from "bdsx/bds/actor";
 import {BlockPos} from "bdsx/bds/blockpos";
 import {ServerPlayer} from "bdsx/bds/player";
 import {VectorXYZ} from "bdsx/common";
-import {BoxCorners, getNumOfBlocksInBox, organizeCorners} from "@bdsx/claim-pilot/src/utils";
-import {addUsedBlocksToPlayer, getPlayerFreeBlocks} from "@bdsx/claim-pilot/src/claims/claimBlocksManager";
-import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
+import {BoxCorners, getNumOfBlocksInBox, organizeCorners} from "../utils";
+import {addUsedBlocksToPlayer, getPlayerFreeBlocks} from "./claimBlocksManager";
+import {CONFIG} from "../configManager";
 
 export enum ClaimBuildFailReason {
     NoPos2,

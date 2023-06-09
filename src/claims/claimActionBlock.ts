@@ -1,5 +1,5 @@
 import {events} from "bdsx/event";
-import {getClaimAtPos} from "@bdsx/claim-pilot/src/claims/claim";
+import {getClaimAtPos} from "./claim";
 import {CommandPermissionLevel} from "bdsx/bds/command";
 import {CANCEL} from "bdsx/common";
 import {ServerPlayer} from "bdsx/bds/player";

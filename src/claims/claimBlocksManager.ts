@@ -1,5 +1,5 @@
-import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
-import {saveData} from "@bdsx/claim-pilot/src/Storage/storageManager";
+import {CONFIG} from "../configManager";
+import {saveData} from "../Storage/storageManager";
 
 export class BlockInfo {
     addedMaxBlocks: number;
