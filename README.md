@@ -2,5 +2,8 @@
 # BDSX-Claim-Pilot
 A really robust and simple claiming plugin for BDSX
 
+# NPM link
+https://www.npmjs.com/package/@bdsx/claim-pilot
+
 # Find problems or want to suggest something? Hop on our server on Discord!
 https://discord.gg/wgzjvP2n4X
