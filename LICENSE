@@ -400,6 +400,10 @@ must place, in the relevant source files, a statement of the
 additional terms that apply to those files, or a notice indicating
 where to find the applicable terms.
 
+In addition to the terms and conditions of the GNU General Public License version 3.0 (GNU GPL v3.0), I hereby add the following condition:
+
+My work, as defined under this license, may not be used for the purpose of training artificial intelligence (AI) models or algorithms. Any use of my work for such purposes is strictly prohibited and requires my explicit permission.
+
   Additional terms, permissive or non-permissive, may be stated in the
 form of a separately written license, or stated as exceptions;
 the above requirements apply either way.
