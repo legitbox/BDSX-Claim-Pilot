@@ -1,5 +1,5 @@
-import {PlayerTimeInfo} from "../playerPlaytime/playtime";
-import {registerEvent, registerEventType} from "./eventStorage";
+import {PlayerTimeInfo} from "@bdsx/claim-pilot/src/playerPlaytime/playtime";
+import {registerEvent, registerEventType} from "@bdsx/claim-pilot/src/events/eventStorage";
 
 export namespace PlaytimeUpdateEvent {
     export const ID = 'PlaytimeUpdateEvent';

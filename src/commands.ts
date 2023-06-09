@@ -1,23 +1,23 @@
 import {events} from "bdsx/event";
 import {command, CustomCommandFactory} from "bdsx/command";
-import {CONFIG, sendConfigForm} from "./configManager";
-import {getClaimBuilder, stopBuilder} from "./claims/claimBuilder";
+import {CONFIG, sendConfigForm} from "@bdsx/claim-pilot/src/configManager";
+import {getClaimBuilder, stopBuilder} from "@bdsx/claim-pilot/src/claims/claimBuilder";
 import {
     addToMaxBlocks,
     getPlayerFreeBlocks,
     getPlayerMaxBlocks,
     removeFromMaxBlocks
-} from "./claims/claimBlocksManager";
-import {Claim, deleteClaim, getClaimAtPos} from "./claims/claim";
+} from "@bdsx/claim-pilot/src/claims/claimBlocksManager";
+import {Claim, deleteClaim, getClaimAtPos} from "@bdsx/claim-pilot/src/claims/claim";
 import {CommandPermissionLevel, PlayerCommandSelector} from "bdsx/bds/command";
 import {int32_t} from "bdsx/nativetype";
-import {createWand} from "./utils";
-import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
+import {createWand} from "@bdsx/claim-pilot/src/utils";
+import {sendPlaytimeFormForPlayer} from "@bdsx/claim-pilot/src/playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
 import {FormButton, SimpleForm} from "bdsx/bds/form";
 import {decay} from "bdsx/decay";
 import isDecayed = decay.isDecayed;
-import {getCurrentClaim} from "./claims/claimDetection";
+import {getCurrentClaim} from "@bdsx/claim-pilot/src/claims/claimDetection";
 import {ServerPlayer} from "bdsx/bds/player";
 
 let claimCommand: CustomCommandFactory | undefined = undefined;

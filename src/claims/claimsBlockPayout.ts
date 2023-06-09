@@ -1,10 +1,10 @@
-import {getTimeInfo, getTimeRewardedFor, PlayerTimeInfo, setTimeRewardedFor} from "../playerPlaytime/playtime";
-import {CONFIG} from "../configManager";
-import {addToMaxBlocks} from "./claimBlocksManager";
-import {PlaytimeUpdateEvent} from "../events/playtimeUpdateEvent";
+import {getTimeInfo, getTimeRewardedFor, PlayerTimeInfo, setTimeRewardedFor} from "@bdsx/claim-pilot/src/playerPlaytime/playtime";
+import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
+import {addToMaxBlocks} from "@bdsx/claim-pilot/src/claims/claimBlocksManager";
+import {PlaytimeUpdateEvent} from "@bdsx/claim-pilot/src/events/playtimeUpdateEvent";
 import {decay} from "bdsx/decay";
 import {bedrockServer} from "bdsx/launcher";
-import {saveData} from "../Storage/storageManager";
+import {saveData} from "@bdsx/claim-pilot/src/Storage/storageManager";
 import isDecayed = decay.isDecayed;
 
 export function getTimeUntilNextPayout(xuid: string) {

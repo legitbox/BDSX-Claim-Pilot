@@ -1,0 +1,28 @@
+{
+    "2533274979798578": {
+        "claims": [
+            {
+                "owner": "2533274979798578",
+                "name": "SacriPudding's claim",
+                "id": "TEg5lVwbphkQroAY",
+                "cornerOne": {
+                    "x": -307,
+                    "y": 100,
+                    "z": -551
+                },
+                "cornerEight": {
+                    "x": -302.0001,
+                    "y": 103.9999,
+                    "z": -547.0001
+                },
+                "dimension": 0
+            }
+        ],
+        "blockInfo": {
+            "addedMaxBlocks": 0,
+            "usedBlocks": 262
+        },
+        "totalTime": 142817,
+        "paidTime": 0
+    }
+}

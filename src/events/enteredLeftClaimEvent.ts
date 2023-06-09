@@ -1,6 +1,6 @@
-import {Claim} from "../claims/claim";
+import {Claim} from "@bdsx/claim-pilot/src/claims/claim";
 import {ServerPlayer} from "bdsx/bds/player";
-import {registerEvent, registerEventType} from "./eventStorage";
+import {registerEvent, registerEventType} from "@bdsx/claim-pilot/src/events/eventStorage";
 
 export namespace EnteredLeftClaimEvent {
     export const ID = 'EnteredLeftClaimEvent';

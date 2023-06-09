@@ -1,1 +1,1 @@
-import './src/index';
+import '@bdsx/claim-pilot/src/index';

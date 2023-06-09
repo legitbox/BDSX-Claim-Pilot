@@ -2,14 +2,14 @@
 import {procHacker} from "bdsx/prochacker";
 import {bool_t, float32_t, int32_t, void_t} from "bdsx/nativetype";
 import {Actor, ActorDamageCause} from "bdsx/bds/actor";
-import {getClaimAtPos} from "./claim";
+import {getClaimAtPos} from "@bdsx/claim-pilot/src/claims/claim";
 import {CommandPermissionLevel} from "bdsx/bds/command";
 import {VoidPointer} from "bdsx/core";
 import {Block, BlockSource} from "bdsx/bds/block";
 import {BlockPos} from "bdsx/bds/blockpos";
 import {events} from "bdsx/event";
 import {CANCEL} from "bdsx/common";
-import {CONFIG} from "../configManager";
+import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
 
 const actor$setTarget = procHacker.hooking(
     '?setTarget@Actor@@UEAAXPEAV1@@Z',

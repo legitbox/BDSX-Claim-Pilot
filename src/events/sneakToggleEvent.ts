@@ -1,4 +1,4 @@
-import {fireEvent, registerEvent, registerEventType} from "./eventStorage";
+import {fireEvent, registerEvent, registerEventType} from "@bdsx/claim-pilot/src/events/eventStorage";
 import {ServerPlayer} from "bdsx/bds/player";
 import {events} from "bdsx/event";
 

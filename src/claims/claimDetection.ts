@@ -1,12 +1,12 @@
 import Timeout = NodeJS.Timeout;
 import {events} from "bdsx/event";
-import {CONFIG} from "../configManager";
+import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
 import {bedrockServer} from "bdsx/launcher";
 import {decay} from "bdsx/decay";
 import isDecayed = decay.isDecayed;
-import {Claim, getClaimAtPos, getClaimFromId} from "./claim";
-import {fireEvent} from "../events/eventStorage";
-import {EnteredLeftClaimEvent} from "../events/enteredLeftClaimEvent";
+import {Claim, getClaimAtPos, getClaimFromId} from "@bdsx/claim-pilot/src/claims/claim";
+import {fireEvent} from "@bdsx/claim-pilot/src/events/eventStorage";
+import {EnteredLeftClaimEvent} from "@bdsx/claim-pilot/src/events/enteredLeftClaimEvent";
 import {ServerPlayer} from "bdsx/bds/player";
 
 const currentClaims: Map<string, string> = new Map(); // Key: xuid, Value: ClaimID

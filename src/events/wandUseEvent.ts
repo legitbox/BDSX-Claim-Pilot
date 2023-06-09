@@ -1,12 +1,12 @@
 import {BlockPos} from "bdsx/bds/blockpos";
-import {fireEvent, registerEvent, registerEventType} from "./eventStorage";
+import {fireEvent, registerEvent, registerEventType} from "@bdsx/claim-pilot/src/events/eventStorage";
 import {CANCEL} from "bdsx/common";
 import {events} from "bdsx/event";
-import {CONFIG} from "../configManager";
+import {CONFIG} from "@bdsx/claim-pilot/src/configManager";
 import {ServerPlayer} from "bdsx/bds/player";
 import {ItemStack} from "bdsx/bds/inventory";
-import {isWand} from "../utils";
-import {triggerWandUse} from "../claims/claimBuilder";
+import {isWand} from "@bdsx/claim-pilot/src/utils";
+import {triggerWandUse} from "@bdsx/claim-pilot/src/claims/claimBuilder";
 
 export namespace WandUseEvent {
     export const ID = 'WandUseEvent';
