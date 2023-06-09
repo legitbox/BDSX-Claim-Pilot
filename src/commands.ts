@@ -16,9 +16,9 @@ import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
 import {FormButton, SimpleForm} from "bdsx/bds/form";
 import {decay} from "bdsx/decay";
-import isDecayed = decay.isDecayed;
 import {getCurrentClaim} from "./claims/claimDetection";
 import {ServerPlayer} from "bdsx/bds/player";
+import isDecayed = decay.isDecayed;
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
 let moderatorClaimCommand: CustomCommandFactory | undefined = undefined;
@@ -257,7 +257,7 @@ events.serverOpen.on(() => {
     }
 
     if (CONFIG.commandOptions.config.isEnabled) {
-        configCommand = command.register(CONFIG.commandOptions.config.commandName, 'Command for editing the config!');
+        configCommand = command.register(CONFIG.commandOptions.config.commandName, 'Command for editing the config!', CommandPermissionLevel.Operator);
 
         for (const alias of CONFIG.commandOptions.config.aliases) {
             configCommand.alias(alias);

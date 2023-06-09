@@ -16,13 +16,29 @@
                     "z": -547.0001
                 },
                 "dimension": 0
+            },
+            {
+                "owner": "2533274979798578",
+                "name": "SacriPudding's claim",
+                "id": "RsVuoEM49uBYYSc5",
+                "cornerOne": {
+                    "x": 524,
+                    "y": 124,
+                    "z": 511
+                },
+                "cornerEight": {
+                    "x": 528.9999,
+                    "y": 128.9999,
+                    "z": 515.9999
+                },
+                "dimension": 2
             }
         ],
         "blockInfo": {
-            "addedMaxBlocks": 0,
-            "usedBlocks": 262
+            "addedMaxBlocks": 125,
+            "usedBlocks": 387
         },
-        "totalTime": 142817,
-        "paidTime": 0
+        "totalTime": 4055615,
+        "paidTime": 3600000
     }
 }

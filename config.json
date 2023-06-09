@@ -1,6 +1,6 @@
 {
     "wandFireRate": 500,
-    "wandItemId": "minecraft:bamboo",
+    "wandItemId": "minecraft:stick",
     "visualiseParticle": "minecraft:balloon_gas_particle",
     "visualiserEnabled": true,
     "visualiserLineDensity": "10",
@@ -9,13 +9,13 @@
     "claimMinimumLength": -1,
     "claimMinimumHeight": 2,
     "claimMinimumBlocks": -1,
-    "claimDisableExplosions": false,
+    "claimDisableExplosions": true,
     "visualizerUpdateRate": 500,
     "claimUpdateRate": 250,
     "defaultMaxClaimBlocks": 4096,
     "allowedClaimDimension": {
         "Overworld": true,
-        "Nether": true,
+        "Nether": false,
         "End": true
     },
     "giveWandCooldown": 60000,
