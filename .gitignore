@@ -1,0 +1,28 @@
+# Ignore node_modules directory
+node_modules/
+
+# Ignore output directories
+dist/
+build/
+out/
+
+# Ignore environment files
+.env
+
+# Ignore log files
+*.log
+
+# Ignore TypeScript source maps
+*.js.map
+
+# Ignore compiled JavaScript files
+*.js
+
+# Ignore TypeScript declaration files
+*.d.ts
+
+# Ignore package-lock.json (npm lockfile)
+package-lock.json
+
+# Ignore yarn.lock (Yarn lockfile)
+yarn.lock

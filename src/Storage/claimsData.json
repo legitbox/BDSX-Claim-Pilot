@@ -1,0 +1,111 @@
+{
+    "2535432764140571": {
+        "claims": [],
+        "blockInfo": {
+            "addedMaxBlocks": 125,
+            "usedBlocks": 0
+        },
+        "totalTime": 4958086,
+        "paidTime": 3600000
+    },
+    "2535469539697058": {
+        "claims": [
+            {
+                "owner": "2535469539697058",
+                "name": "SacriGrape's claim",
+                "id": "jLo70Q7yYr27QE6C",
+                "cornerOne": {
+                    "x": -322,
+                    "y": 100,
+                    "z": -559
+                },
+                "cornerEight": {
+                    "x": -317.0001,
+                    "y": 104.9999,
+                    "z": -554.0001
+                },
+                "dimension": 0
+            }
+        ],
+        "blockInfo": {
+            "addedMaxBlocks": 0,
+            "usedBlocks": 125
+        },
+        "totalTime": 50106,
+        "paidTime": 0
+    },
+    "2533274979798578": {
+        "claims": [
+            {
+                "owner": "2533274979798578",
+                "name": "SacriPudding's claim",
+                "id": "O17R20qN62LoUCPV",
+                "cornerOne": {
+                    "x": -310,
+                    "y": 100,
+                    "z": -549
+                },
+                "cornerEight": {
+                    "x": -307.0001,
+                    "y": 103.9999,
+                    "z": -546.0001
+                },
+                "dimension": 0
+            },
+            {
+                "owner": "2533274979798578",
+                "name": "SacriPudding's claim",
+                "id": "G2F6ViDFqL2KAznq",
+                "cornerOne": {
+                    "x": -313,
+                    "y": 100,
+                    "z": -548
+                },
+                "cornerEight": {
+                    "x": -312.0001,
+                    "y": 100.9999,
+                    "z": -547.0001
+                },
+                "dimension": 0
+            },
+            {
+                "owner": "2533274979798578",
+                "name": "SacriPudding's claim",
+                "id": "C0alyfrP9KI1jMWC",
+                "cornerOne": {
+                    "x": -317,
+                    "y": 100,
+                    "z": -552
+                },
+                "cornerEight": {
+                    "x": -314.0001,
+                    "y": 100.9999,
+                    "z": -548.0001
+                },
+                "dimension": 0
+            },
+            {
+                "owner": "2533274979798578",
+                "name": "SacriPudding's claim",
+                "id": "B8LX5uIrcDkWbdFZ",
+                "cornerOne": {
+                    "x": 27,
+                    "y": 81,
+                    "z": -104
+                },
+                "cornerEight": {
+                    "x": 31.9999,
+                    "y": 81.9999,
+                    "z": -97.0001
+                },
+                "dimension": 1
+            }
+        ],
+        "blockInfo": {
+            "addedMaxBlocks": 0,
+            "usedBlocks": 85
+        },
+        "totalTime": 1783776,
+        "paidTime": 0
+    }
+}

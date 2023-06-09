@@ -1,0 +1,78 @@
+{
+    "wandFireRate": 500,
+    "wandItemId": "minecraft:bamboo",
+    "visualiseParticle": "minecraft:balloon_gas_particle",
+    "visualiserEnabled": true,
+    "visualiserLineDensity": "10",
+    "claimIdLength": 16,
+    "claimMinimumWidth": -1,
+    "claimMinimumLength": -1,
+    "claimMinimumHeight": 2,
+    "claimMinimumBlocks": -1,
+    "claimDisableExplosions": false,
+    "visualizerUpdateRate": 500,
+    "claimUpdateRate": 250,
+    "defaultMaxClaimBlocks": 4096,
+    "allowedClaimDimension": {
+        "Overworld": true,
+        "Nether": true,
+        "End": true
+    },
+    "giveWandCooldown": 60000,
+    "wandNbtEnabled": false,
+    "wandNameEnabled": true,
+    "wandTestByNameEnabled": true,
+    "wandLoreEnabled": true,
+    "wandName": "Claim Wand",
+    "wandLore": [
+        "Select two corners to create a new claim!"
+    ],
+    "playtimeUpdateInterval": 4000,
+    "blockPayoutInterval": 3600000,
+    "blockRewardAmount": 125,
+    "commandOptions": {
+        "claim": {
+            "isEnabled": true,
+            "commandName": "claim",
+            "aliases": [],
+            "quickFormEnabled": true,
+            "subcommandOptions": {
+                "checkBlocksCommandEnabled": true,
+                "deleteClaimCommandEnabled": true,
+                "cancelClaimCreationCommandEnabled": true,
+                "giveWandCommandEnabled": true
+            }
+        },
+        "fclaim": {
+            "isEnabled": true,
+            "commandName": "fclaim",
+            "aliases": [],
+            "quickFormEnabled": true,
+            "subcommandOptions": {
+                "addMaxToPlayerCommandEnabled": true,
+                "removeMaxFromPlayerCommandEnabled": true,
+                "checkPlayerBlocksCommandEnabled": true,
+                "serverClaimCreationModeToggleCommandEnabled": true
+            }
+        },
+        "playtime": {
+            "isEnabled": true,
+            "commandName": "playtime",
+            "aliases": [
+                "pt"
+            ],
+            "subcommandOptions": {
+                "checkPlaytimeCommandEnabled": true,
+                "checkOtherPlayerPlaytimeCommandEnabled": true
+            }
+        },
+        "config": {
+            "isEnabled": true,
+            "commandName": "config",
+            "aliases": [],
+            "subcommandOptions": {
+                "editQuickConfigCommandEnabled": true
+            }
+        }
+    }
+}

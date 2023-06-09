@@ -1,0 +1,15 @@
+{
+  "name": "@bdsx/claim-pilot",
+  "version": "1.0.0",
+  "description": "Simple claims plugin for BDSX!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "SacriGrape",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@types/base-64": "^1.0.0",
+    "base-64": "^1.0.0"
+  }
+}
