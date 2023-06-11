@@ -4,14 +4,37 @@ import {readFileSync, writeFileSync} from "fs";
 import {fsutil} from "bdsx/fsutil";
 import isFileSync = fsutil.isFileSync;
 import {events} from "bdsx/event";
-import {getTimeRewardedFor, getTotalTime, setPlayerPlaytime} from "../playerPlaytime/playtime";
+import {
+    addPlaytimeRewardInfo,
+    getPlaytimeRewardInfo,
+    getTimeRewardedFor,
+    getTotalTime, PlaytimeRewardInfo,
+    setPlayerPlaytime
+} from "../playerPlaytime/playtime";
 
 const STORAGE_PATH = __dirname + '\\claimsData.json';
+
+const dataToBeSavedCallbacks: (() => Map<string, [string, any]>)[] = []; // <xuid, [key, data]>
+const onDataLoadedCallbacks: Map<string, (xuid: string, data: any) => void> = new Map();
+
+export function registerDataToBeSaved(callback: () => Map<string, [string, any]>) {
+    dataToBeSavedCallbacks.push(callback);
+}
+
+export function registerOnRegisteredDataLoaded(key: string, callback: (xuid: string, data: any) => void) {
+    onDataLoadedCallbacks.set(key, callback);
+}
 
 export function saveData() {
     const playersWithStorage = getAllPlayerBlockPairs();
 
     const storage: any = {};
+
+    const extraData: Map<string, [string, any]>[] = [];
+
+    for (const callback of dataToBeSavedCallbacks) {
+        extraData.push(callback());
+    }
 
     for (const [xuid, blockInfo] of playersWithStorage) {
         if (xuid === 'SERVER') {
@@ -24,6 +47,31 @@ export function saveData() {
         storage[xuid].blockInfo = blockInfo;
         storage[xuid].totalTime = getTotalTime(xuid);
         storage[xuid].paidTime = getTimeRewardedFor(xuid);
+
+        const playtimeRewardMap = getPlaytimeRewardInfo(xuid);
+
+        const rewardInfos: PlaytimeRewardInfo[] = [];
+
+        if (playtimeRewardMap !== undefined) {
+            for (const [, rewardInfo] of playtimeRewardMap.entries()) {
+                rewardInfos.push(rewardInfo);
+            }
+        }
+
+        storage[xuid].extraRewardInfo = rewardInfos;
+
+        if (extraData.length !== 0) {
+            storage[xuid].extraData = {};
+        }
+
+        for (const map of extraData) {
+            const data = map.get(xuid);
+            if (data === undefined) {
+                continue;
+            }
+
+            storage[xuid].extraData[data[0]] = data[1];
+        }
     }
 
     writeFileSync(STORAGE_PATH, JSON.stringify(storage, null, 4));
@@ -60,6 +108,23 @@ function loadData() {
         setPlayerBlockInfo(xuid, BlockInfo.fromData(blockInfoData), false);
 
         setPlayerPlaytime(xuid, playerData.paidTime, false, playerData.totalTime)
+
+        for (const rewardInfoData of playerData.extraRewardInfo) {
+            const rewardInfo = PlaytimeRewardInfo.fromData(rewardInfoData);
+            addPlaytimeRewardInfo(xuid, rewardInfo);
+        }
+
+        if (playerData.extraData !== undefined) {
+            const keys = Object.keys(playerData.extraData);
+
+            for (const key of keys) {
+                const data = playerData.extraData[key];
+                const callback = onDataLoadedCallbacks.get(key);
+                if (callback !== undefined) {
+                    callback(xuid, data);
+                }
+            }
+        }
     }
 
     if (data.serverClaims !== undefined) {

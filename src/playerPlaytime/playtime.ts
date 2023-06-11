@@ -12,6 +12,7 @@ import {CustomForm, FormLabel} from "bdsx/bds/form";
 import {fireEvent} from "../events/eventStorage";
 import {PlaytimeUpdateEvent} from "../events/playtimeUpdateEvent";
 import {getTimeUntilNextPayout} from "../claims/claimsBlockPayout";
+import {getPlayerMaxBlocks} from "../claims/claimBlocksManager";
 
 const playerTimeInfoMap: Map<string, PlayerTimeInfo> = new Map();
 const playerJoinTimeMap: Map<string, number> = new Map();
@@ -30,8 +31,62 @@ export class PlayerTimeInfo {
         this.paidTime = paidTime;
     }
 }
-
 let playtimeInterval: Timeout | undefined = undefined;
+
+export type PlaytimeRewardCallback = (playerXuid: string, rewardCount: number) => void | boolean;
+
+export class PlaytimeRewardOptions {
+    rewardName: string;
+    rewardInterval: number;
+    rewardCallback: PlaytimeRewardCallback;
+
+    constructor(name: string, interval: number, callback: PlaytimeRewardCallback) {
+        this.rewardName = name;
+        this.rewardInterval = interval;
+        this.rewardCallback = callback;
+    }
+}
+
+export class PlaytimeRewardInfo {
+    rewardName: string;
+    paidTime: number;
+
+    constructor(rewardName: string, paidTime: number) {
+        this.rewardName = rewardName;
+        this.paidTime = paidTime;
+    }
+
+    static fromData(data: any) {
+        return new PlaytimeRewardInfo(data.rewardName, data.paidTime);
+    }
+}
+
+const playtimeRewardOptions: Map<string, PlaytimeRewardOptions> = new Map();
+const playerPlaytimeRewards: Map<string, Map<string, PlaytimeRewardInfo>> = new Map();
+
+export function getPlaytimeRewardOptions(rewardName: string) {
+    return playtimeRewardOptions.get(rewardName);
+}
+
+export function registerPlaytimeRewardType(rewardName: string, interval: number, callback: PlaytimeRewardCallback) {
+    return playtimeRewardOptions.set(
+        rewardName, new PlaytimeRewardOptions(rewardName, interval, callback),
+    );
+}
+
+export function addPlaytimeRewardInfo(xuid: string, rewardInfo: PlaytimeRewardInfo) {
+    let rewardInfoMap = playerPlaytimeRewards.get(xuid);
+    if (rewardInfoMap === undefined) {
+        rewardInfoMap = new Map();
+        playerPlaytimeRewards.set(xuid, rewardInfoMap);
+    }
+
+    rewardInfoMap.set(rewardInfo.rewardName, rewardInfo);
+}
+
+export function getPlaytimeRewardInfo(xuid: string) {
+    return playerPlaytimeRewards.get(xuid);
+}
 
 function getAndUpdateCurrentPlaytime(xuid: string, isOnline: boolean, shouldSave: boolean = true) {
     const info = playerTimeInfoMap.get(xuid);
@@ -93,6 +148,10 @@ export function getTimeRewardedFor(xuid: string) {
     const info = playerTimeInfoMap.get(xuid);
     if (info === undefined) {
         return 0;
+    }
+
+    if (isNaN(info.paidTime)) {
+        info.paidTime = 0;
     }
 
     return info.paidTime;
@@ -162,6 +221,9 @@ events.packetRaw(MinecraftPacketIds.Login).on((pkt, _s, ni) => {
     playerNameMap.set(xuid, name);
 
     niToXuidMap.set(ni.address.rakNetGuid.g, xuid);
+
+    // Player save data is based on the basis they have block info, so creating block info
+    getPlayerMaxBlocks(xuid);
 })
 
 events.networkDisconnected.on((ni) => {
@@ -211,7 +273,30 @@ export function sendPlaytimeFormForPlayer(formViewerXuid: string, targetXuid: st
     contentString += `§aTotal Play Time: ${totalTimeStr}§a!\n`;
     contentString += `§aCurrent Session Play Time: ${sessionTimeStr}§a!\n`;
     contentString += '\n';
-    contentString += `§aTime until next payout: ${timeUntilNextPayoutStr}§a!\n`;
+    if (CONFIG.playtimeBlockRewardEnabled) {
+        contentString += `§aTime until next block payout: ${timeUntilNextPayoutStr}§a!\n`;
+    }
+
+    const rewardOptions = playtimeRewardOptions.entries();
+    let playerRewardInfo = playerPlaytimeRewards.get(targetXuid);
+
+    if (playerRewardInfo === undefined) {
+        playerRewardInfo = new Map();
+        playerPlaytimeRewards.set(targetXuid, playerRewardInfo);
+    }
+
+    for (const [rewardName, options] of rewardOptions) {
+        let rewardTimeInfo = playerRewardInfo.get(rewardName);
+        if (rewardTimeInfo === undefined) {
+            rewardTimeInfo = new PlaytimeRewardInfo(rewardName, 0);
+            playerRewardInfo.set(rewardName, rewardTimeInfo);
+        }
+
+        const unrewardedTime = currentTime - rewardTimeInfo.paidTime;
+        const timeRemaining = Math.max(options.rewardInterval - unrewardedTime, 0);
+
+        contentString += `§aTime until next ${rewardName} payout: ${createFormattedTimeString(timeRemaining)}§a!\n\n`;
+    }
 
     const form = new CustomForm('Playtime Info', [
         new FormLabel(contentString),
@@ -227,3 +312,34 @@ export function getTimeInfo(xuid: string) {
     }
     return res;
 }
+
+export function onPlaytimeUpdated(xuid: string, timeInfo: PlayerTimeInfo) {
+    let extraRewardCounters = playerPlaytimeRewards.get(xuid);
+    if (extraRewardCounters === undefined) {
+        extraRewardCounters = new Map();
+        playerPlaytimeRewards.set(xuid, extraRewardCounters);
+    }
+
+    for (const [rewardName, options] of playtimeRewardOptions.entries()) {
+        let rewardTimeInfo = extraRewardCounters.get(rewardName);
+        if (rewardTimeInfo === undefined) {
+            rewardTimeInfo = new PlaytimeRewardInfo(rewardName, 0);
+            extraRewardCounters.set(rewardName, rewardTimeInfo);
+        }
+
+        const unpaidTime = timeInfo.totalTime - rewardTimeInfo.paidTime;
+        const rewardCount = Math.floor(unpaidTime / options.rewardInterval);
+        if (rewardCount !== 0) {
+            let rewarded = options.rewardCallback(xuid, rewardCount);
+            if (rewarded === undefined) {
+                rewarded = true;
+            }
+
+            if (rewarded) {
+                rewardTimeInfo.paidTime += options.rewardInterval * rewardCount;
+            }
+        }
+    }
+}
+
+PlaytimeUpdateEvent.register(onPlaytimeUpdated);

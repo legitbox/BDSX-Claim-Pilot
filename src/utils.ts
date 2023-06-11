@@ -43,7 +43,24 @@ export function isWand(item: ItemStack) {
         return itemTag.tag !== undefined && itemTag.tag.isWand === 1;
     }
 
-    if (CONFIG.wandName)
+    if (CONFIG.wandTestByNameEnabled && item.getCustomName() !== CONFIG.wandName) {
+        return false;
+    }
+
+    if (CONFIG.wandTestByLoreEnabled) {
+        const itemLore = item.getCustomLore();
+        if (CONFIG.wandLore.length !== itemLore.length) {
+            return false;
+        }
+
+        if (
+            !CONFIG.wandLore.every((line, index) => {
+                return line === itemLore[index];
+            })
+        ) {
+            return false;
+        }
+    }
 
     return true;
 }

@@ -3,12 +3,12 @@
     "wandItemId": "minecraft:stick",
     "visualiseParticle": "minecraft:balloon_gas_particle",
     "visualiserEnabled": true,
-    "visualiserLineDensity": "10",
+    "visualiserLineDensity": 10,
     "claimIdLength": 16,
     "claimMinimumWidth": -1,
     "claimMinimumLength": -1,
-    "claimMinimumHeight": 2,
-    "claimMinimumBlocks": -1,
+    "claimMinimumHeight": -1,
+    "claimMinimumBlocks": 27,
     "claimDisableExplosions": true,
     "visualizerUpdateRate": 500,
     "claimUpdateRate": 250,
@@ -16,13 +16,14 @@
     "allowedClaimDimension": {
         "Overworld": true,
         "Nether": false,
-        "End": true
+        "End": false
     },
     "giveWandCooldown": 60000,
     "wandNbtEnabled": false,
     "wandNameEnabled": true,
     "wandTestByNameEnabled": true,
     "wandLoreEnabled": true,
+    "wandTestByLoreEnabled": true,
     "wandName": "Claim Wand",
     "wandLore": [
         "Select two corners to create a new claim!"
@@ -74,5 +75,6 @@
                 "editQuickConfigCommandEnabled": true
             }
         }
-    }
+    },
+    "playtimeBlockRewardEnabled": false
 }
