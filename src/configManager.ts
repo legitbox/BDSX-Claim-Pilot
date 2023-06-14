@@ -56,6 +56,8 @@ export interface Config {
                 deleteClaimCommandEnabled: boolean;
                 cancelClaimCreationCommandEnabled: boolean;
                 giveWandCommandEnabled: boolean;
+                addPlayerCommandEnabled: boolean;
+                removePlayerCommandEnabled: boolean;
             }
         };
         fclaim: {
@@ -95,27 +97,11 @@ export let CONFIG: Config;
 if (isFileSync(CONFIG_PATH)) {
     CONFIG = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
 
-    const defaultInstance = createDefaultConfig();
-    const defaultInstKeys = Object.keys(defaultInstance);
-    const configKeys = Object.keys(CONFIG);
+    const defaultConfig = createDefaultConfig();
+    const updatedConfig = createUpdatedObjectIfKeysIfNotEqual(CONFIG, defaultConfig);
 
-    if (defaultInstKeys.length !== configKeys.length) {
-        if (defaultInstKeys.length > configKeys.length) {
-            for (const key of defaultInstKeys) {
-                if (!configKeys.includes(key)) {
-                    // @ts-ignore
-                    CONFIG[key as keyof Config] = defaultInstance[key as keyof Config]
-                }
-            }
-        } else {
-            for (const key of configKeys) {
-                if (!defaultInstKeys.includes(key)) {
-                    // @ts-ignore
-                    CONFIG[key as keyof Config] = undefined;
-                }
-            }
-        }
-
+    if (updatedConfig !== undefined) {
+        CONFIG = updatedConfig;
         writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
     }
 } else {
@@ -127,6 +113,41 @@ if (isFileSync(CONFIG_PATH)) {
 events.serverOpen.on(() => {
     updateConfigInNative(NativeConfigObject.uglyConstruct());
 })
+
+function createUpdatedObjectIfKeysIfNotEqual(obj: any, exampleObj: any) {
+    // Goal: Should return an OBJ that A.) Adds missing keys from exampleObj and B.) Removes keys not in exampleObj
+    // NOTE: This will not validate types of params, just that they exist.
+    const newObject: any = {}
+
+    const exampleObjKeys = Object.keys(exampleObj);
+
+    let hadToBeUpdated = false;
+    for (const key of exampleObjKeys) {
+        const objVal = obj[key];
+        const exampleObjVal = exampleObj[key];
+
+        if (objVal === undefined) {
+            hadToBeUpdated = true;
+            newObject[key] = exampleObjVal;
+        } else if (typeof exampleObjVal === "object") {
+            const res = createUpdatedObjectIfKeysIfNotEqual(objVal, exampleObjVal);
+            if (res === undefined) {
+                newObject[key] = objVal;
+            } else {
+                newObject[key] = res;
+                hadToBeUpdated = true;
+            }
+        } else {
+            newObject[key] = objVal;
+        }
+    }
+
+    if (!hadToBeUpdated) {
+        return undefined;
+    }
+
+    return newObject;
+}
 
 function createDefaultConfig(): Config {
     return {
@@ -173,7 +194,9 @@ function createDefaultConfig(): Config {
                     checkBlocksCommandEnabled: true,
                     deleteClaimCommandEnabled: true,
                     cancelClaimCreationCommandEnabled: true,
-                    giveWandCommandEnabled: true
+                    giveWandCommandEnabled: true,
+                    addPlayerCommandEnabled: true,
+                    removePlayerCommandEnabled: true,
                 }
             },
             fclaim: {

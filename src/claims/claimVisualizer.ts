@@ -3,7 +3,7 @@ import {SneakToggleEvent} from "../events/sneakToggleEvent";
 import {deleteItemFromArray, generateBox, getPlayersFromXuids, isWand} from "../utils";
 import {events} from "bdsx/event";
 import {CONFIG} from "../configManager";
-import {getOwnedClaims} from "./claim";
+import {getOwnedOrMemberedClaims} from "./claim";
 import {bedrockServer} from "bdsx/launcher";
 import {Vec3} from "bdsx/bds/blockpos";
 import {MinecraftPacketIds} from "bdsx/bds/packetids";
@@ -55,7 +55,7 @@ events.serverOpen.on(() => {
 
         for (const player of players) {
             const xuid = player.getXuid();
-            const claims = getOwnedClaims(xuid);
+            const claims = getOwnedOrMemberedClaims(xuid);
             if (claims.length === 0) {
                 continue;
             }

@@ -8,7 +8,14 @@ import {
     getPlayerMaxBlocks,
     removeFromMaxBlocks
 } from "./claims/claimBlocksManager";
-import {Claim, deleteClaim, getClaimAtPos} from "./claims/claim";
+import {
+    Claim,
+    ClaimPermissionTypes,
+    createDefaultClaimPermission,
+    deleteClaim,
+    getClaimAtPos,
+    playerHasPerms
+} from "./claims/claim";
 import {CommandPermissionLevel, PlayerCommandSelector} from "bdsx/bds/command";
 import {int32_t} from "bdsx/nativetype";
 import {createWand} from "./utils";
@@ -147,6 +154,107 @@ events.serverOpen.on(() => {
                     output.success('§aClaim wand given!');
                 }, {
                     options: command.enum('options.wand', 'wand'),
+                })
+        }
+
+        if (CONFIG.commandOptions.claim.subcommandOptions.addPlayerCommandEnabled) {
+            claimCommand
+                .overload((params, origin, output) => {
+                    const player = origin.getEntity();
+                    if (player === null || !player.isPlayer()) {
+                        output.error("Command needs to be ran by a player!");
+                        return;
+                    }
+
+                    const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                    if (claim === undefined) {
+                        output.error('You are not in a claim!');
+                        return;
+                    }
+
+                    const xuid = player.getXuid();
+                    if (
+                        claim.owner !== xuid &&
+                        player.getCommandPermissionLevel() === CommandPermissionLevel.Normal &&
+                        !playerHasPerms(claim, xuid, ClaimPermissionTypes.EditMembers)
+                    ) {
+                        output.error('You dont have permission to add players to this claim!');
+                        return;
+                    }
+
+                    const targets = params.target.newResults(origin);
+                    if (targets.length === 0) {
+                        output.error('No targets matched selector');
+                        return;
+                    }
+
+                    const members = Object.keys(claim.members);
+                    for (const target of targets) {
+                        const targetXuid = target.getXuid();
+                        const name = target.getName();
+                        if (members.includes(targetXuid) || claim.owner === targetXuid) {
+                            output.error(`§e${name}§c already a member of §e${claim.name}§c!`);
+                            continue;
+                        }
+
+                        claim.members[targetXuid] = createDefaultClaimPermission();
+                        output.success(`§e${name}§a added to §e${claim.name}§a!`);
+                    }
+                }, {
+                    options: command.enum('options.addplayer', 'addplayer'),
+                    target: PlayerCommandSelector,
+                })
+        }
+
+        if (CONFIG.commandOptions.claim.subcommandOptions.removePlayerCommandEnabled) {
+            claimCommand
+                .overload((params, origin, output) => {
+                    const player = origin.getEntity();
+                    if (player === null || !player.isPlayer()) {
+                        output.error("Command needs to be ran by a player!");
+                        return;
+                    }
+
+                    const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                    if (claim === undefined) {
+                        output.error('You are not in a claim!');
+                        return;
+                    }
+
+                    const xuid = player.getXuid();
+                    if (
+                        claim.owner !== xuid &&
+                        player.getCommandPermissionLevel() === CommandPermissionLevel.Normal &&
+                        !playerHasPerms(claim, xuid, ClaimPermissionTypes.EditMembers)
+                    ) {
+                        output.error('You dont have permission to remove players from this claim!');
+                        return;
+                    }
+
+                    const targets = params.target.newResults(origin);
+                    if (targets.length === 0) {
+                        output.error('No targets matched selector');
+                        return;
+                    }
+
+                    const members = Object.keys(claim.members);
+                    for (const target of targets) {
+                        const targetXuid = target.getXuid();
+                        const name = target.getName();
+                        if (claim.owner === targetXuid) {
+                            output.error('§cYou cant remove the owner form a claim!');
+                            continue;
+                        } else if (!members.includes(targetXuid)) {
+                            output.error(`§e${name}§c is not a member of §e${claim.name}§c!`);
+                            continue;
+                        }
+
+                        delete claim.members[targetXuid];
+                        output.success(`§e${name}§a removed from §e${claim.name}§a!`);
+                    }
+                }, {
+                    options: command.enum('options.removeplayer', 'removeplayer'),
+                    target: PlayerCommandSelector,
                 })
         }
     }
@@ -411,4 +519,8 @@ function getWandCommand(player: ServerPlayer) {
     wandCooldownMap.set(xuid, now);
 
     player.sendMessage('§aClaim wand given!');
+}
+
+function addPlayerCommand(runnerXuid: string, targets: ServerPlayer[]) {
+
 }

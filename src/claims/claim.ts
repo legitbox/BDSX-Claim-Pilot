@@ -9,6 +9,16 @@ import {fireEvent} from "../events/eventStorage";
 
 const claimMap: Map<string, Claim[]> = new Map(); // Key: OwnerXUID, value: Owned claims
 
+export interface ClaimPermission {
+    canAddPlayers: boolean;
+}
+
+export function createDefaultClaimPermission(): ClaimPermission {
+    return {
+        canAddPlayers: false,
+    }
+}
+
 export class Claim {
     owner: string; // XUID
     name: string;
@@ -16,6 +26,7 @@ export class Claim {
     dimension: DimensionId;
     cornerOne: SerializableVec3; // Lowest X, Y, and Z
     cornerEight: SerializableVec3; // Highest X, Y, and Z
+    members: Record<string, ClaimPermission>;
 
     constructor(owner: string, name: string, id: string, cornerOne: SerializableVec3, cornerTwo: SerializableVec3, dimension: DimensionId) {
         this.owner = owner;
@@ -24,10 +35,18 @@ export class Claim {
         this.cornerOne = cornerOne;
         this.cornerEight = cornerTwo;
         this.dimension = dimension;
+        this.members = {};
     }
 
     static fromData(data: any) {
-        return new Claim(data.owner, data.name, data.id, data.cornerOne, data.cornerEight, data.dimension);
+        const claim = new Claim(data.owner, data.name, data.id, data.cornerOne, data.cornerEight, data.dimension);
+        const keys = Object.keys(data);
+
+        if (keys.includes('members')) { // Backwards compatibility, Added in an update so might not exist on data
+            claim.members = data.members;
+        }
+
+        return claim;
     }
 
     totalBlocks() {
@@ -119,6 +138,19 @@ export function getOwnedClaims(ownerXuid: string) {
     return claims;
 }
 
+export function getOwnedOrMemberedClaims(playerXuid: string) {
+    const claims = getAllClaims();
+    const foundClaims: Claim[] = [];
+
+    for (const claim of claims) {
+        if (claim.owner === playerXuid || claim.members[playerXuid] !== undefined) {
+            foundClaims.push(claim);
+        }
+    }
+
+    return foundClaims;
+}
+
 export function getClaimAtPos(pos: VectorXYZ, dimension: DimensionId) {
     const claims = getAllClaims();
 
@@ -174,5 +206,23 @@ export function getClaimFromId(id: string) {
                 return claim;
             }
         }
+    }
+}
+
+export enum ClaimPermissionTypes {
+    EditMembers,
+}
+
+export function playerHasPerms(claim: Claim, playerXuid: string, permission: ClaimPermissionTypes) {
+    const permissionData = claim.members[playerXuid];
+    if (permissionData === undefined) {
+        return false;
+    }
+
+    switch (permission) {
+        case ClaimPermissionTypes.EditMembers:
+            return permissionData.canAddPlayers;
+        default:
+            return false;
     }
 }

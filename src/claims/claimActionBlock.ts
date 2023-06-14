@@ -20,7 +20,8 @@ events.blockDestroy.on((ev) => {
         return;
     }
 
-    if (claim.owner !== xuid && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         ev.player.sendMessage('§cYou dont have permission to break blocks in this claim!');
         return CANCEL;
     }
@@ -34,7 +35,8 @@ events.blockPlace.on((ev) => {
         return;
     }
 
-    if (claim.owner !== xuid && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         ev.player.sendMessage('§cYou dont have permission to place blocks in this claim!');
         return CANCEL;
     }
@@ -48,7 +50,8 @@ events.blockInteractedWith.on((ev) => {
         return;
     }
 
-    if (claim.owner !== xuid && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         ev.player.sendMessage('§cYou dont have permission to use blocks in this claim!');
         return CANCEL;
     }
@@ -72,7 +75,8 @@ events.itemUseOnBlock.on((ev) => {
         return;
     }
 
-    if (claim.owner !== xuid && ev.actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         ev.actor.sendMessage('§cYou dont have permission to use items in this claim!');
         return CANCEL;
     }
@@ -86,7 +90,8 @@ events.playerAttack.on((ev) => {
 
     const xuid = ev.player.getXuid();
 
-    if (claim.owner !== xuid && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         ev.player.sendMessage('§cYou are not allowed to harm entities in this claim!');
         return CANCEL;
     }
@@ -99,7 +104,8 @@ events.blockInteractedWith.on((ev) => {
     }
 
     const xuid = ev.player.getXuid();
-    if (claim.owner !== xuid && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         console.log('In here!');
         return CANCEL;
     }
@@ -112,7 +118,8 @@ events.playerInteract.on((ev) => {
     }
 
     const xuid = ev.player.getXuid();
-    if (claim.owner !== xuid && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         return CANCEL;
     }
 })
@@ -128,7 +135,8 @@ events.entityStartRiding.on((ev) => {
     }
 
     const xuid = ev.entity.getXuid();
-    if (claim.owner !== xuid && ev.entity.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.entity.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         return CANCEL;
     }
 })
@@ -141,7 +149,8 @@ function handleItemUseClaimCheck(player: ServerPlayer) {
         return;
     }
 
-    if (claim.owner !== xuid && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         player.sendMessage('§cYou dont have permission to use items in this claim!');
         return CANCEL;
     }
@@ -158,7 +167,8 @@ events.farmlandDecay.on((ev) => {
     }
 
     const xuid = ev.culprit.getXuid();
-    if (claim.owner !== xuid && ev.culprit.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.culprit.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         return CANCEL;
     }
 
@@ -186,7 +196,8 @@ function onTryTill(this: Block, region: BlockSource, pos: BlockPos, tiller: Acto
     }
 
     const xuid = tiller.getXuid();
-    if (claim.owner !== xuid && tiller.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && tiller.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         return false;
     }
 
@@ -225,7 +236,8 @@ function onUseBucket(this: BucketItem, res: InteractionResult, item: ItemStack, 
     }
 
     const xuid = actor.getXuid();
-    if (claim.owner !== xuid && actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         const falseResult = InteractionResult.allocate();
         falseResult.value = 0;
         return falseResult;
@@ -250,7 +262,8 @@ function onUseRepeater(this: Block, player: ServerPlayer, pos: BlockPos, side: u
     }
 
     const xuid = player.getXuid();
-    if (claim.owner !== xuid && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         player.sendMessage('§cYou dont have permission to use blocks in this claim!');
         return false;
     }
@@ -273,7 +286,8 @@ function onItemFrameAttack(this: Block, player: ServerPlayer, pos: BlockPos) {
     }
 
     const xuid = player.getXuid();
-    if (claim.owner !== xuid && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         return false;
     }
 
@@ -302,7 +316,8 @@ function onCheckPressed(this: Block, region: BlockSource, pos: BlockPos, presser
     }
 
     const xuid = presser.getXuid();
-    if (claim.owner !== xuid && presser.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    const claimMembers = Object.keys(claim.members);
+    if (claim.owner !== xuid && !claimMembers.includes(xuid) && presser.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
         return;
     }
 
