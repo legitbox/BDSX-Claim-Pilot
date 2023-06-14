@@ -58,8 +58,6 @@ export function freeBlocksForPlayer(playerXuid: string, amount: number, shouldSa
     const oldUsedBlocks = getPlayerUsedBlocks(playerXuid);
     let newUsedBlocks = oldUsedBlocks - amount;
 
-    console.log(newUsedBlocks);
-
     let blockInfo = playerBlockMap.get(playerXuid);
     if (blockInfo === undefined) {
         throw 'ERROR: Setting Player To Default Blocks Doesnt Work';

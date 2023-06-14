@@ -1,3 +1,4 @@
+import './Native/dllManager';
 import './Storage/storageManager';
 
 import './events/eventStorage';

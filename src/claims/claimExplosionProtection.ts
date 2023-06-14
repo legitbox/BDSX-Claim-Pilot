@@ -1,6 +1,6 @@
 // Blocking creeper explosion
 import {procHacker} from "bdsx/prochacker";
-import {bool_t, float32_t, int32_t, void_t} from "bdsx/nativetype";
+import {float32_t, int32_t, void_t} from "bdsx/nativetype";
 import {Actor, ActorDamageCause} from "bdsx/bds/actor";
 import {getClaimAtPos} from "./claim";
 import {CommandPermissionLevel} from "bdsx/bds/command";
@@ -10,6 +10,7 @@ import {BlockPos} from "bdsx/bds/blockpos";
 import {events} from "bdsx/event";
 import {CANCEL} from "bdsx/common";
 import {CONFIG} from "../configManager";
+import {setSetBlockHookEnabled} from "../Native/dllManager";
 
 const actor$setTarget = procHacker.hooking(
     '?setTarget@Actor@@UEAAXPEAV1@@Z',
@@ -82,37 +83,10 @@ let isExploding = false;
 
 function onExplosion(this: VoidPointer) {
     isExploding = true;
+    setSetBlockHookEnabled(true);
     explosion$Explode.call(this);
     isExploding = false;
-}
-
-const blockSource$setBlock = procHacker.hooking(
-    '?setBlock@BlockSource@@UEAA_NAEBVBlockPos@@AEBVBlock@@HPEBUActorBlockSyncMessage@@PEAVActor@@@Z',
-    bool_t,
-    {this: BlockSource},
-    BlockPos,
-    Block,
-    int32_t,
-    VoidPointer,
-    Actor,
-)(onSetBlock);
-
-function onSetBlock(this: BlockSource, pos: BlockPos, block: Block, num: int32_t, blockSyncMessage: VoidPointer, cause: Actor) {
-    if (!isExploding || !CONFIG.claimDisableExplosions) {
-        return blockSource$setBlock.call(this, pos, block, num, blockSyncMessage, cause);
-    }
-
-    const claim = getClaimAtPos(pos, this.getDimensionId());
-    if (claim === undefined) {
-        return blockSource$setBlock.call(this, pos, block, num, blockSyncMessage, cause);
-    } else {
-        const currentBlock = this.getBlock(pos);
-        if (currentBlock.getName() === 'minecraft:tnt' && block.getName() === 'minecraft:air') {
-            return blockSource$setBlock.call(this, pos, block, num, blockSyncMessage, cause);
-        }
-
-        return false;
-    }
+    setSetBlockHookEnabled(false);
 }
 
 const block$trySpawnResourcesOnExplosion = procHacker.hooking(

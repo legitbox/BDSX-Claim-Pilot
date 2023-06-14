@@ -7,6 +7,9 @@ import {decay} from "bdsx/decay";
 import isDecayed = decay.isDecayed;
 import {updateAllPlayerBlocksBasedOnNewSettings} from "./claims/claimsBlockPayout";
 import {Config} from "bdsx/config";
+import {updateConfigInNative} from "./Native/dllManager";
+import {NativeConfigObject} from "./Native/dllTypes";
+import {events} from "bdsx/event";
 
 const CONFIG_PATH = __dirname + '\\..\\config.json';
 
@@ -120,6 +123,10 @@ if (isFileSync(CONFIG_PATH)) {
 
     writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
 }
+
+events.serverOpen.on(() => {
+    updateConfigInNative(NativeConfigObject.uglyConstruct());
+})
 
 function createDefaultConfig(): Config {
     return {
@@ -289,5 +296,7 @@ export function sendConfigForm(player: ServerPlayer) {
         CONFIG.playtimeBlockRewardEnabled = res.response[20];
 
         writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
+
+        updateConfigInNative(NativeConfigObject.uglyConstruct());
     })
 }

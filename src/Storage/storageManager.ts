@@ -11,6 +11,8 @@ import {
     getTotalTime, PlaytimeRewardInfo,
     setPlayerPlaytime
 } from "../playerPlaytime/playtime";
+import {updateStorageInNative} from "../Native/dllManager";
+import {NativeStorageObject} from "../Native/dllTypes";
 
 const STORAGE_PATH = __dirname + '\\claimsData.json';
 
@@ -75,6 +77,9 @@ export function saveData() {
     }
 
     writeFileSync(STORAGE_PATH, JSON.stringify(storage, null, 4));
+
+    const nativeStorage = NativeStorageObject.uglyConstruct(storage);
+    updateStorageInNative(nativeStorage);
 }
 
 function loadData() {
@@ -133,6 +138,9 @@ function loadData() {
             registerServerClaim(claim);
         }
     }
+
+    const nativeStorage = NativeStorageObject.uglyConstruct(data);
+    updateStorageInNative(nativeStorage);
 }
 
 events.serverOpen.on(() => {

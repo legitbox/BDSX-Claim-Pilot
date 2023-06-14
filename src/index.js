@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("./Native/dllManager");
 require("./Storage/storageManager");
 require("./events/eventStorage");
 require("./events/wandUseEvent");
@@ -17,4 +18,4 @@ require("./claims/claimsBlockPayout");
 require("./claims/claimExplosionProtection");
 require("./playerPlaytime/playtime");
 require("./commands");
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJpbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLG9DQUFrQztBQUVsQyxpQ0FBK0I7QUFDL0IsaUNBQStCO0FBQy9CLHFDQUFtQztBQUNuQywwQ0FBd0M7QUFDeEMsd0NBQXNDO0FBQ3RDLHNDQUFvQztBQUVwQywwQkFBd0I7QUFDeEIsbUNBQWlDO0FBQ2pDLG9DQUFrQztBQUNsQyxxQ0FBbUM7QUFDbkMsdUNBQXFDO0FBQ3JDLGlDQUErQjtBQUMvQixzQ0FBb0M7QUFDcEMsNkNBQTJDO0FBRTNDLHFDQUFtQztBQUVuQyxzQkFBb0IifQ==
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJpbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLCtCQUE2QjtBQUM3QixvQ0FBa0M7QUFFbEMsaUNBQStCO0FBQy9CLGlDQUErQjtBQUMvQixxQ0FBbUM7QUFDbkMsMENBQXdDO0FBQ3hDLHdDQUFzQztBQUN0QyxzQ0FBb0M7QUFFcEMsMEJBQXdCO0FBQ3hCLG1DQUFpQztBQUNqQyxvQ0FBa0M7QUFDbEMscUNBQW1DO0FBQ25DLHVDQUFxQztBQUNyQyxpQ0FBK0I7QUFDL0Isc0NBQW9DO0FBQ3BDLDZDQUEyQztBQUUzQyxxQ0FBbUM7QUFFbkMsc0JBQW9CIn0=

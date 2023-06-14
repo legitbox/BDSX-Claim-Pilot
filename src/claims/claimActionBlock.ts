@@ -10,6 +10,7 @@ import {BlockPos, Vec3} from "bdsx/bds/blockpos";
 import {Actor} from "bdsx/bds/actor";
 import {ItemStack} from "bdsx/bds/inventory";
 import {nativeClass, NativeClass, nativeField} from "bdsx/nativeclass";
+import {isPointInBox} from "../utils";
 
 events.blockDestroy.on((ev) => {
     const xuid = ev.player.getXuid();
@@ -307,3 +308,27 @@ function onCheckPressed(this: Block, region: BlockSource, pos: BlockPos, presser
 
     return basePressurePlate$checkPressed.call(this, region, pos, presser, uNum1, uNum2);
 }
+
+const liquidBlockDynamic$canSpreadTo = procHacker.hooking(
+    '?_canSpreadTo@LiquidBlockDynamic@@AEBA_NAEAVBlockSource@@AEBVBlockPos@@1E@Z',
+    bool_t,
+    {this: Block},
+    BlockSource,
+    BlockPos,
+    BlockPos,
+    uint8_t,
+)(onRequestCanFlow);
+
+function onRequestCanFlow(this: Block, region: BlockSource, target: BlockPos, source: BlockPos, side: number) {
+    const claim = getClaimAtPos(target, region.getDimensionId());
+    if (claim === undefined) {
+        return liquidBlockDynamic$canSpreadTo.call(this, region, target, source, side);
+    }
+
+    if (isPointInBox(source, claim.cornerOne, claim.cornerEight)) {
+        return liquidBlockDynamic$canSpreadTo.call(this, region, target, source, side);
+    } else {
+        return false;
+    }
+}
+
