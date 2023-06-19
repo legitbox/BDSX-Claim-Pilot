@@ -19,8 +19,7 @@ const registeredEvents: Map<string, EventInfo> = new Map();
 export function registerEvent(id: string, callback: any) {
     let info = registeredEvents.get(id);
     if (info === undefined) {
-        console.log(id);
-        throw 'ERROR: Event Type doesn\'t exist!';
+        throw `ERROR: Event Type ${id} doesn't exist!`;
     }
 
     info.registeredCallbacks.push(callback);

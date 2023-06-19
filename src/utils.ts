@@ -310,26 +310,38 @@ export function getXuidFromLoginPkt(pkt: NativePointer): [string, string] | unde
         const partOneData = JSON.parse(decodedPartOne);
         const partTwoData = JSON.parse(decodedPartTwo);
 
-        if (i === 3) {
-            name = partTwoData.extraData.displayName;
-        }
+        const partOneKeys = Object.keys(partOneData);
+        const partTwoKeys = Object.keys(partTwoData);
 
+        if (partOneKeys.includes("extraData")) {
+            const extraDataKeys = Object.keys(partOneData.extraData);
 
-        if (Object.keys(partOneData).includes('extraData') && Object.keys(partOneData.extraData).includes('XUID')) {
-            xuid = partOneData.extraData.XUID;
-        }
+            if (extraDataKeys.includes("XUID")) {
+                xuid = partOneData.extraData.XUID;
+            }
 
-        if (Object.keys(partTwoData).includes('extraData')) {
-            xuid = partTwoData.extraData.XUID;
+            if (extraDataKeys.includes("displayName")) {
+                name = partOneData.extraData.displayName;
+            }
+        } else if (partTwoKeys.includes("extraData")) {
+            const extraDataKeys = Object.keys(partTwoData.extraData);
+
+            if (extraDataKeys.includes("XUID")) {
+                xuid = partTwoData.extraData.XUID;
+            }
+
+            if (extraDataKeys.includes("displayName")) {
+                name = partTwoData.extraData.displayName;
+            }
         }
     }
 
     if (xuid === undefined) {
-        throw 'XUID WASN\'T IN LOGIN';
+        return undefined;
     }
 
     if (name === undefined) {
-        throw 'NAME WASN\'T IN LOGIN';
+        return undefined;
     }
 
     return [xuid, name];

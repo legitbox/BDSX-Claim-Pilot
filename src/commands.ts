@@ -21,10 +21,11 @@ import {int32_t} from "bdsx/nativetype";
 import {createWand} from "./utils";
 import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
-import {FormButton, SimpleForm} from "bdsx/bds/form";
+import {CustomForm, FormButton, FormInput, FormLabel, FormToggle, SimpleForm} from "bdsx/bds/form";
 import {decay} from "bdsx/decay";
 import {getCurrentClaim} from "./claims/claimDetection";
 import {ServerPlayer} from "bdsx/bds/player";
+import {getName, saveData} from "./Storage/storageManager";
 import isDecayed = decay.isDecayed;
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
@@ -188,17 +189,17 @@ events.serverOpen.on(() => {
                         return;
                     }
 
-                    const members = Object.keys(claim.members);
                     for (const target of targets) {
                         const targetXuid = target.getXuid();
-                        const name = target.getName();
-                        if (members.includes(targetXuid) || claim.owner === targetXuid) {
-                            output.error(`§e${name}§c already a member of §e${claim.name}§c!`);
-                            continue;
+                        const res = addPlayerToClaim(claim, targetXuid);
+                        switch (res) {
+                            case AddPlayerResult.Success:
+                                output.success(`§e${target.getName()} is now a member of ${claim.name}!`);
+                                break;
+                            case AddPlayerResult.AlreadyMember:
+                                output.error(`${target.getName()} is already a member of ${claim.name}!`);
+                                break;
                         }
-
-                        claim.members[targetXuid] = createDefaultClaimPermission();
-                        output.success(`§e${name}§a added to §e${claim.name}§a!`);
                     }
                 }, {
                     options: command.enum('options.addplayer', 'addplayer'),
@@ -237,20 +238,20 @@ events.serverOpen.on(() => {
                         return;
                     }
 
-                    const members = Object.keys(claim.members);
                     for (const target of targets) {
                         const targetXuid = target.getXuid();
-                        const name = target.getName();
-                        if (claim.owner === targetXuid) {
-                            output.error('§cYou cant remove the owner form a claim!');
-                            continue;
-                        } else if (!members.includes(targetXuid)) {
-                            output.error(`§e${name}§c is not a member of §e${claim.name}§c!`);
-                            continue;
+                        const res = removePlayerFromClaim(claim, targetXuid);
+                        switch (res) {
+                            case RemovePlayerResult.Success:
+                                output.success(`§e${target.getName()}§a is no longer a member of §e${claim.name}`);
+                                break;
+                            case RemovePlayerResult.NotAMember:
+                                output.error(`${target.getName()} is not a member of ${claim.name}!`);
+                                break;
+                            case RemovePlayerResult.CantRemoveOwner:
+                                output.error('You cant remove the owner from a claim!');
+                                break;
                         }
-
-                        delete claim.members[targetXuid];
-                        output.success(`§e${name}§a removed from §e${claim.name}§a!`);
                     }
                 }, {
                     options: command.enum('options.removeplayer', 'removeplayer'),
@@ -417,6 +418,16 @@ function sendClaimForm(xuid: string) {
         buttonIds.push('wand');
     }
 
+    if (CONFIG.commandOptions.claim.subcommandOptions.addPlayerCommandEnabled) {
+        buttons.push(new FormButton('Add Player To Claim'));
+        buttonIds.push('addplayer');
+    }
+
+    if (CONFIG.commandOptions.claim.subcommandOptions.removePlayerCommandEnabled) {
+        buttons.push(new FormButton('Remove Player From Claim'));
+        buttonIds.push('removeplayer');
+    }
+
     const form = new SimpleForm('Claim Subcommands', 'Select an option:', buttons);
 
     form.sendTo(player.getNetworkIdentifier(), (form) => {
@@ -426,6 +437,9 @@ function sendClaimForm(xuid: string) {
 
         const id = buttonIds[form.response];
 
+        const xuid = player.getXuid();
+
+        let claim: Claim | undefined = undefined;
         switch (id) {
             case 'cancel':
                 const cancelResult = cancelClaim(xuid);
@@ -437,10 +451,10 @@ function sendClaimForm(xuid: string) {
                 }
                 break;
             case 'delete':
-                const claim = getCurrentClaim(xuid);
+                claim = getCurrentClaim(xuid);
                 if (claim === undefined) {
                     player.sendMessage('§cYou are not in a claim!');
-                    return;
+                    break;
                 }
                 const deleteResult = deleteClaimCommand(xuid, claim, player.getCommandPermissionLevel());
                 if (deleteResult === DeleteClaimEnumResult.Success) {
@@ -455,8 +469,118 @@ function sendClaimForm(xuid: string) {
             case 'wand':
                 getWandCommand(player);
                 break;
-        }
+            case 'addplayer':
+                claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                if (claim === undefined) {
+                    player.sendMessage('§cYou are not in a claim!');
+                    break;
+                }
 
+                let xuid2 = player.getXuid();
+                if (claim.owner !== xuid2 && !playerHasPerms(claim, xuid2, ClaimPermissionTypes.EditMembers) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+                    player.sendMessage('§cYou dont have permission to add players to this claim!');
+                    break;
+                }
+
+                sendAndGetSearchPlayerForm(player).then((foundPlayers) => {
+                    if (isDecayed(player)) {
+                        return;
+                    }
+
+                    if (foundPlayers === undefined) {
+                        player.sendMessage('§cNo players found!');
+                        return;
+                    }
+
+                    sendSelectPlayerForm(player, foundPlayers).then((foundPlayer) => {
+                        if (isDecayed(player) || foundPlayer === undefined) {
+                            return;
+                        }
+
+                        if (isDecayed(foundPlayer)) {
+                            player.sendMessage('§cThe selected player is no long online!')
+                            return;
+                        }
+
+                        const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                        if (claim === undefined) {
+                            player.sendMessage('§cYou are not in a claim!');
+                            return;
+                        }
+
+                        const res = addPlayerToClaim(claim, foundPlayer.getXuid());
+                        switch (res) {
+                            case AddPlayerResult.Success:
+                                player.sendMessage(`§e${foundPlayer.getName()}§a is now a member of §e${claim.name}§a!`);
+                                break;
+                            case AddPlayerResult.AlreadyMember:
+                                player.sendMessage(`§c${foundPlayer.getName()} is already a member of ${claim.name}!`);
+                                break;
+                        }
+                    })
+                })
+
+                break;
+            case 'removeplayer':
+                claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                if (claim === undefined) {
+                    player.sendMessage('§cYou are not in a claim!');
+                    return;
+                }
+
+                const xuid3 = player.getXuid();
+                if (claim.owner !== xuid3 || playerHasPerms(claim, xuid3, ClaimPermissionTypes.EditMembers) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+                    player.sendMessage('§cYou dont have permission to remove players from this claim!');
+                    return;
+                }
+
+                let memberXuids = Object.keys(claim.members);
+                const memberNames: string[] = [];
+                const indexesToRemove: number[] = [];
+                for (let i = 0; i < memberXuids.length; i++) {
+                    const xuid3 = memberXuids[i];
+
+                    const name = getName(xuid3);
+                    if (name === undefined) {
+                        indexesToRemove.push(i);
+                    } else {
+                        memberNames.push(name);
+                    }
+                }
+
+                for (const index of indexesToRemove) {
+                    memberXuids = memberXuids.filter((_v, i) => {
+                        return !indexesToRemove.includes(i);
+                    })
+                }
+
+                sendSelectPlayerNameForm(player, memberXuids, memberNames).then((xuid) => {
+                    if (isDecayed(player) || xuid === undefined) {
+                        return;
+                    }
+
+                    const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                    if (claim === undefined) {
+                        player.sendMessage('§cYou are not in a claim!');
+                        return;
+                    }
+
+                    const name = getName(xuid);
+
+                    const res = removePlayerFromClaim(claim, xuid);
+                    switch (res) {
+                        case RemovePlayerResult.Success:
+                            player.sendMessage(`§aRemoved §e${name}§a from §e${claim.name}`);
+                            break;
+                        case RemovePlayerResult.CantRemoveOwner:
+                            player.sendMessage('§cYou cant remove the owner from their own claim!');
+                            break;
+                        case RemovePlayerResult.NotAMember:
+                            player.sendMessage(`§e${name} isn't a member of that claim!`);
+                    }
+                })
+                break;
+            }
     });
 }
 
@@ -521,6 +645,126 @@ function getWandCommand(player: ServerPlayer) {
     player.sendMessage('§aClaim wand given!');
 }
 
-function addPlayerCommand(runnerXuid: string, targets: ServerPlayer[]) {
+enum AddPlayerResult {
+    Success,
+    AlreadyMember,
+}
 
+function addPlayerToClaim(claim: Claim, playerXuid: string) {
+    const members = Object.keys(claim.members);
+    if (claim.owner === playerXuid || members.includes(playerXuid)) {
+        return AddPlayerResult.AlreadyMember;
+    }
+
+    claim.members[playerXuid] = createDefaultClaimPermission();
+    
+    saveData();
+
+    return AddPlayerResult.Success;
+}
+
+enum RemovePlayerResult {
+    Success,
+    NotAMember,
+    CantRemoveOwner
+}
+
+function removePlayerFromClaim(claim: Claim, playerXuid: string) {
+    const members = Object.keys(claim.members);
+    if (claim.owner === playerXuid) {
+        return RemovePlayerResult.CantRemoveOwner;
+    }
+
+    if (!members.includes(playerXuid)) {
+        return RemovePlayerResult.NotAMember;
+    }
+
+    delete claim.members[playerXuid];
+
+    return RemovePlayerResult.Success;
+}
+
+async function sendAndGetSearchPlayerForm(player: ServerPlayer): Promise<ServerPlayer[] | undefined> {
+    const form = new CustomForm("Search for Player", [
+        new FormInput('Enter player name:'), // 0
+        new FormLabel('Match Case:'),
+        new FormToggle('', false), // 2
+        new FormLabel('Exact Name:'),
+        new FormToggle('', false), // 4
+    ]);
+
+    return new Promise((resolve) => {
+        form.sendTo(player.getNetworkIdentifier(), (res) => {
+            if (res.response === null || isDecayed(player)) {
+                resolve(undefined);
+                return;
+            }
+
+            let searchedName = res.response[0];
+            if (!res.response[2]) {
+                searchedName = searchedName.toLowerCase();
+            }
+            const players = bedrockServer.level.getPlayers();
+            resolve(
+                players.filter((value) => {
+                    let foundName = value.getName();
+                    if (!res.response[2]) { // Match Case
+                        foundName = foundName.toLowerCase();
+                    }
+
+                    if (res.response[4]) { // Exact Name
+                        return foundName === searchedName;
+                    } else {
+                        return foundName.includes(searchedName);
+                    }
+                })
+            )
+        });
+    })
+}
+
+async function sendSelectPlayerForm(player: ServerPlayer, playerList: ServerPlayer[]): Promise<ServerPlayer | undefined> {
+    const buttons: FormButton[] = [];
+    for (const player of playerList) {
+        buttons.push(new FormButton(player.getName(), "url", "https://i.imgur.com/t699Gf6.jpg"));
+    }
+
+    const form = new SimpleForm('Select a Player', '', buttons);
+
+    return new Promise((resolve) => {
+        form.sendTo(player.getNetworkIdentifier(), (res) => {
+            if (res.response === null || isDecayed(player)) {
+                resolve(undefined);
+                return;
+            }
+
+            const selectedPlayer = playerList[res.response];
+            if (isDecayed(selectedPlayer)) {
+                resolve(undefined);
+            } else {
+                resolve(selectedPlayer);
+            }
+        })
+    })
+}
+
+async function sendSelectPlayerNameForm(player: ServerPlayer, xuids: string[], names: string[]): Promise<string | undefined> {
+    const buttons: FormButton[] = [];
+    for (const name of names) {
+        buttons.push(new FormButton(name, 'url', 'https://i.imgur.com/t699Gf6.jpg'));
+    }
+
+    const form = new SimpleForm('Select a Player', '', buttons);
+
+    return new Promise((resolve) => {
+        form.sendTo(player.getNetworkIdentifier(), (res) => {
+            if (isDecayed(player) || res.response === null) {
+                resolve(undefined);
+                return;
+            }
+
+            const xuid = xuids[res.response];
+            resolve(xuid);
+        })
+    })
 }

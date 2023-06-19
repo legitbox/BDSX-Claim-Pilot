@@ -249,7 +249,6 @@ export function sendPlaytimeFormForPlayer(formViewerXuid: string, targetXuid: st
     // Grabbing player
     const player = bedrockServer.level.getPlayerByXuid(formViewerXuid);
     if (player === null) {
-        console.log('player is null?');
         return false;
     }
 
@@ -259,7 +258,6 @@ export function sendPlaytimeFormForPlayer(formViewerXuid: string, targetXuid: st
 
     const name = playerNameMap.get(targetXuid);
     if (name === undefined) {
-        console.log('Name not logged');
         return false;
     }
 

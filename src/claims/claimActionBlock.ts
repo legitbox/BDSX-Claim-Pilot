@@ -106,7 +106,6 @@ events.blockInteractedWith.on((ev) => {
     const xuid = ev.player.getXuid();
     const claimMembers = Object.keys(claim.members);
     if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        console.log('In here!');
         return CANCEL;
     }
 });

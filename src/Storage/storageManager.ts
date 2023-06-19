@@ -1,20 +1,26 @@
-import {BlockInfo, getAllPlayerBlockPairs, setPlayerBlockInfo} from "../claims/claimBlocksManager";
+import {BlockInfo, getPlayerBlockInfo, setPlayerBlockInfo} from "../claims/claimBlocksManager";
 import {Claim, getOwnedClaims, registerClaim, registerServerClaim} from "../claims/claim";
 import {readFileSync, writeFileSync} from "fs";
 import {fsutil} from "bdsx/fsutil";
-import isFileSync = fsutil.isFileSync;
 import {events} from "bdsx/event";
 import {
     addPlaytimeRewardInfo,
     getPlaytimeRewardInfo,
     getTimeRewardedFor,
-    getTotalTime, PlaytimeRewardInfo,
+    getTotalTime,
+    PlaytimeRewardInfo,
     setPlayerPlaytime
 } from "../playerPlaytime/playtime";
 import {updateStorageInNative} from "../Native/dllManager";
 import {NativeStorageObject} from "../Native/dllTypes";
+import {MinecraftPacketIds} from "bdsx/bds/packetids";
+import {getXuidFromLoginPkt} from "../utils";
+import {CANCEL} from "bdsx/common";
+import isFileSync = fsutil.isFileSync;
 
 const STORAGE_PATH = __dirname + '\\claimsData.json';
+
+const playerNameMap: Map<string, string> = new Map();
 
 const dataToBeSavedCallbacks: (() => Map<string, [string, any]>)[] = []; // <xuid, [key, data]>
 const onDataLoadedCallbacks: Map<string, (xuid: string, data: any) => void> = new Map();
@@ -28,7 +34,7 @@ export function registerOnRegisteredDataLoaded(key: string, callback: (xuid: str
 }
 
 export function saveData() {
-    const playersWithStorage = getAllPlayerBlockPairs();
+    const playersWithStorage = playerNameMap.entries();
 
     const storage: any = {};
 
@@ -38,7 +44,7 @@ export function saveData() {
         extraData.push(callback());
     }
 
-    for (const [xuid, blockInfo] of playersWithStorage) {
+    for (const [xuid, name] of playersWithStorage) {
         if (xuid === 'SERVER') {
             storage.serverClaims = getOwnedClaims(xuid);
             continue;
@@ -46,9 +52,10 @@ export function saveData() {
 
         storage[xuid] = {};
         storage[xuid].claims = getOwnedClaims(xuid);
-        storage[xuid].blockInfo = blockInfo;
+        storage[xuid].blockInfo = getPlayerBlockInfo(xuid);
         storage[xuid].totalTime = getTotalTime(xuid);
         storage[xuid].paidTime = getTimeRewardedFor(xuid);
+        storage[xuid].name = name;
 
         const playtimeRewardMap = getPlaytimeRewardInfo(xuid);
 
@@ -119,6 +126,10 @@ function loadData() {
             addPlaytimeRewardInfo(xuid, rewardInfo);
         }
 
+        if (Object.keys(playerData).includes('name')) {
+            playerNameMap.set(xuid, playerData.name);
+        }
+
         if (playerData.extraData !== undefined) {
             const keys = Object.keys(playerData.extraData);
 
@@ -146,3 +157,19 @@ function loadData() {
 events.serverOpen.on(() => {
     loadData();
 })
+
+events.packetRaw(MinecraftPacketIds.Login).on((pkt) => {
+    const playerData = getXuidFromLoginPkt(pkt);
+    if (playerData === undefined) {
+        // Something is wrong with their login packet
+        return CANCEL;
+    }
+
+    const [xuid, name] = playerData;
+
+    playerNameMap.set(xuid, name);
+})
+
+export function getName(xuid: string) {
+    return playerNameMap.get(xuid);
+}

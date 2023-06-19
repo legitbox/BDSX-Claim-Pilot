@@ -54,6 +54,16 @@ export function getPlayerMaxBlocks(playerXuid: string) {
     return CONFIG.defaultMaxClaimBlocks + blocks.addedMaxBlocks;
 }
 
+export function getPlayerBlockInfo(xuid: string) {
+    let res = playerBlockMap.get(xuid);
+    if (res === undefined) {
+        res = new BlockInfo(0, 0);
+        playerBlockMap.set(xuid, res);
+    }
+
+    return res;
+}
+
 export function freeBlocksForPlayer(playerXuid: string, amount: number, shouldSave: boolean = true) {
     const oldUsedBlocks = getPlayerUsedBlocks(playerXuid);
     let newUsedBlocks = oldUsedBlocks - amount;
