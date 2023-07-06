@@ -159,6 +159,9 @@ export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
     const dimensionId = player.getDimensionId();
     const overlappedClaim = getClaimAtPos(pos, dimensionId);
 
+    const playerXuid = player.getXuid();
+    const isServerClaim = isPlayerServerBuilder(playerXuid);
+
     let canPlaceInDimension;
     switch (dimensionId) {
         case DimensionId.Overworld:
@@ -175,7 +178,7 @@ export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
             break;
     }
 
-    if (!canPlaceInDimension) {
+    if (!canPlaceInDimension && !isServerClaim) {
         player.sendMessage('§cClaims are not allowed in this dimension!');
         return;
     }
@@ -186,8 +189,6 @@ export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
         return;
     }
 
-    const playerXuid = player.getXuid();
-    const isServerClaim = isPlayerServerBuilder(playerXuid);
     const claimXuid = isServerClaim ? "SERVER" : playerXuid;
 
     let availableBlocks;
