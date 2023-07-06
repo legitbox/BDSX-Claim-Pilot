@@ -10,14 +10,12 @@ import {
 } from "./claims/claimBlocksManager";
 import {
     Claim,
-    ClaimPermissionTypes,
-    createDefaultClaimPermission,
     deleteClaim,
     getClaimAtPos,
     playerHasPerms
 } from "./claims/claim";
 import {CommandPermissionLevel, PlayerCommandSelector} from "bdsx/bds/command";
-import {int32_t} from "bdsx/nativetype";
+import {CxxString, int32_t} from "bdsx/nativetype";
 import {createWand} from "./utils";
 import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
@@ -27,6 +25,7 @@ import {getCurrentClaim} from "./claims/claimDetection";
 import {ServerPlayer} from "bdsx/bds/player";
 import {getName, saveData} from "./Storage/storageManager";
 import isDecayed = decay.isDecayed;
+import {createDefaultClaimPermission} from "./claims/claimPermissionManager";
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
 let moderatorClaimCommand: CustomCommandFactory | undefined = undefined;
@@ -59,7 +58,7 @@ events.serverOpen.on(() => {
 
         if (CONFIG.commandOptions.claim.subcommandOptions.cancelClaimCreationCommandEnabled) {
             claimCommand
-                .overload((params, origin, output) => {
+                .overload((_p, origin, output) => {
                     const player = origin.getEntity();
                     if (player === null || !player.isPlayer()) {
                         output.error('Command needs to be ran by a player!');
@@ -82,7 +81,7 @@ events.serverOpen.on(() => {
 
         if (CONFIG.commandOptions.claim.subcommandOptions.checkBlocksCommandEnabled) {
             claimCommand
-                .overload((params, origin, output) => {
+                .overload((_p, origin, output) => {
                     const player = origin.getEntity();
                     if (player === null || !player.isPlayer()) {
                         output.error('Command needs to be ran by a player!');
@@ -99,7 +98,7 @@ events.serverOpen.on(() => {
 
         if (CONFIG.commandOptions.claim.subcommandOptions.deleteClaimCommandEnabled) {
             claimCommand
-                .overload((params, origin, output) => {
+                .overload((_p, origin, output) => {
                     const player = origin.getEntity();
                     if (player === null || !player.isPlayer()) {
                         output.error('Command needs to be ran by a player!');
@@ -177,7 +176,7 @@ events.serverOpen.on(() => {
                     if (
                         claim.owner !== xuid &&
                         player.getCommandPermissionLevel() === CommandPermissionLevel.Normal &&
-                        !playerHasPerms(claim, xuid, ClaimPermissionTypes.EditMembers)
+                        !playerHasPerms(claim, xuid, "edit_members")
                     ) {
                         output.error('You dont have permission to add players to this claim!');
                         return;
@@ -226,7 +225,7 @@ events.serverOpen.on(() => {
                     if (
                         claim.owner !== xuid &&
                         player.getCommandPermissionLevel() === CommandPermissionLevel.Normal &&
-                        !playerHasPerms(claim, xuid, ClaimPermissionTypes.EditMembers)
+                        !playerHasPerms(claim, xuid, "edit_members")
                     ) {
                         output.error('You dont have permission to remove players from this claim!');
                         return;
@@ -256,6 +255,44 @@ events.serverOpen.on(() => {
                 }, {
                     options: command.enum('options.removeplayer', 'removeplayer'),
                     target: PlayerCommandSelector,
+                })
+        }
+
+        if (CONFIG.commandOptions.claim.subcommandOptions.setClaimNameCommandEnabled) {
+            claimCommand
+                .overload((params, origin, output) => {
+                    const player = origin.getEntity();
+                    if (player === null || !player.isPlayer()) {
+                        output.error("Command needs to be ran by a player!");
+                        return;
+                    }
+
+                    const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+                    if (claim === undefined) {
+                        output.error("You are not in a claim!");
+                        return;
+                    }
+
+                    const xuid = player.getXuid();
+                    if (
+                        claim.owner !== xuid &&
+                        player.getCommandPermissionLevel() === CommandPermissionLevel.Normal
+                    ) {
+                        output.error("You don't have permission to set the name in that claim!")
+                    }
+
+                    let trimmedName = params.name.trim();
+                    if (trimmedName === "") {
+                        output.error("Name cant be blank!");
+                        return;
+                    }
+
+                    claim.name = trimmedName;
+
+                    output.success(`§aSet claim name to §e${trimmedName}§a!`);
+                }, {
+                    options: command.enum('options.setname', 'setname'),
+                    name: CxxString,
                 })
         }
     }
@@ -428,6 +465,11 @@ function sendClaimForm(xuid: string) {
         buttonIds.push('removeplayer');
     }
 
+    if (CONFIG.commandOptions.claim.subcommandOptions.setClaimNameCommandEnabled) {
+        buttons.push(new FormButton('Set Claim Name'));
+        buttonIds.push('setname');
+    }
+
     const form = new SimpleForm('Claim Subcommands', 'Select an option:', buttons);
 
     form.sendTo(player.getNetworkIdentifier(), (form) => {
@@ -477,7 +519,7 @@ function sendClaimForm(xuid: string) {
                 }
 
                 let xuid2 = player.getXuid();
-                if (claim.owner !== xuid2 && !playerHasPerms(claim, xuid2, ClaimPermissionTypes.EditMembers) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+                if (claim.owner !== xuid2 && !playerHasPerms(claim, xuid2, "edit_members") && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
                     player.sendMessage('§cYou dont have permission to add players to this claim!');
                     break;
                 }
@@ -529,7 +571,7 @@ function sendClaimForm(xuid: string) {
                 }
 
                 const xuid3 = player.getXuid();
-                if (claim.owner !== xuid3 || playerHasPerms(claim, xuid3, ClaimPermissionTypes.EditMembers) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+                if (claim.owner !== xuid3 || playerHasPerms(claim, xuid3, "edit_members") && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
                     player.sendMessage('§cYou dont have permission to remove players from this claim!');
                     return;
                 }
@@ -548,7 +590,7 @@ function sendClaimForm(xuid: string) {
                     }
                 }
 
-                for (const index of indexesToRemove) {
+                for (const _ of indexesToRemove) {
                     memberXuids = memberXuids.filter((_v, i) => {
                         return !indexesToRemove.includes(i);
                     })
@@ -579,6 +621,32 @@ function sendClaimForm(xuid: string) {
                             player.sendMessage(`§e${name} isn't a member of that claim!`);
                     }
                 })
+                break;
+
+            case 'setname':
+                sendClaimNameInputForm(player).then(undefined, (reason) => {
+                    if (isDecayed(player)) {
+                        return;
+                    }
+
+                    switch (reason) {
+                        case SendClaimNameFormFailReason.NoClaim: {
+                            player.sendMessage("§cYou are not in a claim!");
+                            break;
+                        }
+
+                        case SendClaimNameFormFailReason.NoPermission: {
+                            player.sendMessage("§cYou don't have permission to set the name in this claim!");
+                            break;
+                        }
+
+                        case SendClaimNameFormFailReason.BlankName: {
+                            player.sendMessage("§cName can't be blank!");
+                            break;
+                        }
+                    }
+                })
+
                 break;
             }
     });
@@ -767,4 +835,56 @@ async function sendSelectPlayerNameForm(player: ServerPlayer, xuids: string[], n
             resolve(xuid);
         })
     })
+}
+
+enum SendClaimNameFormFailReason {
+    Cancelled,
+    NoClaim,
+    NoPermission,
+    BlankName,
+}
+
+async function sendClaimNameInputForm(player: ServerPlayer): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+        if (claim === undefined) {
+            reject(SendClaimNameFormFailReason.NoClaim);
+            return;
+        }
+        
+        const xuid = player.getXuid();
+        if (
+            claim.owner !== xuid &&
+            player.getCommandPermissionLevel() === CommandPermissionLevel.Normal
+        ) {
+            reject(SendClaimNameFormFailReason.NoPermission);
+        }
+
+        const defaultName = claim.name;
+
+        const form = new CustomForm("Claim Name", [
+            new FormInput('Enter the claim name:', defaultName, defaultName),
+        ])
+
+
+        form.sendTo(player.getNetworkIdentifier(), (res) => {
+            if (res.response === null || isDecayed(player)) {
+                reject(SendClaimNameFormFailReason.Cancelled);
+                return;
+            }
+
+            const trimmedName = res.response[0].trim();
+            if (trimmedName === "") {
+                reject(SendClaimNameFormFailReason.BlankName);
+                return;
+            }
+
+            claim.name = trimmedName;
+            player.sendMessage(`§aClaim name set to §e${trimmedName}§a!`);
+
+            saveData();
+
+            resolve(trimmedName);
+        })
+    });
 }

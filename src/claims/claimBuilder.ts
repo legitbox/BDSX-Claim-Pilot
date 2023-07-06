@@ -11,7 +11,6 @@ import {CONFIG} from "../configManager";
 export enum ClaimBuildFailReason {
     NoPos2,
     NoName,
-    PlayerGone,
     OverlappingClaim,
     InsufficientBlocks,
     TooSmall,

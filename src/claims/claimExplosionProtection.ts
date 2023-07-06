@@ -79,13 +79,9 @@ const explosion$Explode = procHacker.hooking(
     {this: VoidPointer},
 )(onExplosion);
 
-let isExploding = false;
-
 function onExplosion(this: VoidPointer) {
-    isExploding = true;
     setSetBlockHookEnabled(true);
     explosion$Explode.call(this);
-    isExploding = false;
     setSetBlockHookEnabled(false);
 }
 

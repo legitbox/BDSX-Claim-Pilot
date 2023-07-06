@@ -17,8 +17,14 @@ import {MinecraftPacketIds} from "bdsx/bds/packetids";
 import {getXuidFromLoginPkt} from "../utils";
 import {CANCEL} from "bdsx/common";
 import isFileSync = fsutil.isFileSync;
+import {updateFromNoVersion} from "./storageUpdater";
 
 const STORAGE_PATH = __dirname + '\\claimsData.json';
+const CURRENT_STORAGE_VERSION = 1;
+export const NON_XUID_STORAGE = [
+    "version",
+    "serverClaims",
+]
 
 const playerNameMap: Map<string, string> = new Map();
 
@@ -38,6 +44,8 @@ export function saveData() {
 
     const storage: any = {};
 
+    storage.version = CURRENT_STORAGE_VERSION;
+
     const extraData: Map<string, [string, any]>[] = [];
 
     for (const callback of dataToBeSavedCallbacks) {
@@ -51,7 +59,35 @@ export function saveData() {
         }
 
         storage[xuid] = {};
-        storage[xuid].claims = getOwnedClaims(xuid);
+
+        const ownedClaims = getOwnedClaims(xuid);
+        const memberClaimData: any[] = [];
+        for (const claim of ownedClaims) {
+            const memberXuids = Object.keys(claim.members);
+            const membersData: any = {};
+            for (const xuid of memberXuids) {
+                const memberPermMap = claim.members[xuid];
+
+                const permData: any = {};
+                for (const [permission, value] of memberPermMap.entries()) {
+                    permData[permission] = value;
+                }
+
+                membersData[xuid] = permData;
+            }
+
+            memberClaimData.push({
+                owner: claim.owner,
+                name: claim.name,
+                id: claim.id,
+                cornerOne: claim.cornerOne,
+                cornerEight: claim.cornerEight,
+                dimension: claim.dimension,
+                members: membersData
+            })
+        }
+
+        storage[xuid].claims = memberClaimData;
         storage[xuid].blockInfo = getPlayerBlockInfo(xuid);
         storage[xuid].totalTime = getTotalTime(xuid);
         storage[xuid].paidTime = getTimeRewardedFor(xuid);
@@ -108,9 +144,18 @@ function loadData() {
         return;
     }
 
+    if (data.version !== CURRENT_STORAGE_VERSION) {
+        data = updateStorageFromVersion(data, data.version);
+    }
+
     const xuids = Object.keys(data);
     for (const xuid of xuids) {
         const playerData = data[xuid];
+
+        if (NON_XUID_STORAGE.includes(xuid)) {
+            continue; // Not player storage
+        }
+
         for (const claimData of playerData.claims) {
             const claim = Claim.fromData(claimData);
             registerClaim(claim);
@@ -172,4 +217,18 @@ events.packetRaw(MinecraftPacketIds.Login).on((pkt) => {
 
 export function getName(xuid: string) {
     return playerNameMap.get(xuid);
+}
+
+function updateStorageFromVersion(storage: any, version: number) {
+    let newStorage;
+    switch (version) {
+        case undefined:
+            newStorage = updateFromNoVersion(storage);
+    }
+
+    newStorage.version = CURRENT_STORAGE_VERSION;
+
+    writeFileSync(STORAGE_PATH, JSON.stringify(newStorage, null, 4));
+
+    return newStorage;
 }

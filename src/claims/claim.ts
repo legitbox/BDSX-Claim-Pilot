@@ -6,18 +6,9 @@ import {DimensionId} from "bdsx/bds/actor";
 import {saveData} from "../Storage/storageManager";
 import {freeBlocksForPlayer} from "./claimBlocksManager";
 import {fireEvent} from "../events/eventStorage";
+import {ClaimPermission, updatePermissions} from "./claimPermissionManager";
 
 const claimMap: Map<string, Claim[]> = new Map(); // Key: OwnerXUID, value: Owned claims
-
-export interface ClaimPermission {
-    canAddPlayers: boolean;
-}
-
-export function createDefaultClaimPermission(): ClaimPermission {
-    return {
-        canAddPlayers: false,
-    }
-}
 
 export class Claim {
     owner: string; // XUID
@@ -43,7 +34,21 @@ export class Claim {
         const keys = Object.keys(data);
 
         if (keys.includes('members')) { // Backwards compatibility, Added in an update so might not exist on data
-            claim.members = data.members;
+            const memberKeys = Object.keys(data.members);
+
+            for (const memberXuid of memberKeys) {
+                const permissionData = data.members[memberXuid];
+                const permissionKeys = Object.keys(permissionData);
+                const permMap: ClaimPermission = new Map();
+                for (const permission in permissionKeys) {
+                    const permValue = permissionData[permission];
+                    permMap.set(permission, permValue);
+                }
+
+                updatePermissions(permMap);
+
+                claim.members[memberXuid] = permMap;
+            }
         }
 
         return claim;
@@ -209,20 +214,16 @@ export function getClaimFromId(id: string) {
     }
 }
 
-export enum ClaimPermissionTypes {
-    EditMembers,
-}
-
-export function playerHasPerms(claim: Claim, playerXuid: string, permission: ClaimPermissionTypes) {
-    const permissionData = claim.members[playerXuid];
-    if (permissionData === undefined) {
+export function playerHasPerms(claim: Claim, playerXuid: string, permission: string) {
+    const memberPermData = claim.members[playerXuid];
+    if (memberPermData === undefined) { // Not a member
         return false;
     }
 
-    switch (permission) {
-        case ClaimPermissionTypes.EditMembers:
-            return permissionData.canAddPlayers;
-        default:
-            return false;
+    const permissionData = memberPermData.get(permission);
+    if (permissionData === undefined) {
+        return undefined;
     }
+
+    return permissionData;
 }

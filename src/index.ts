@@ -9,6 +9,7 @@ import './events/playtimeUpdateEvent';
 import './events/claimCreatedEvent';
 
 import './claims/claim';
+import './claims/claimPermissionManager';
 import './claims/claimDetection';
 import './claims/claimVisualizer';
 import './claims/claimActionBlock';

@@ -58,6 +58,7 @@ export interface Config {
                 giveWandCommandEnabled: boolean;
                 addPlayerCommandEnabled: boolean;
                 removePlayerCommandEnabled: boolean;
+                setClaimNameCommandEnabled: boolean;
             }
         };
         fclaim: {
@@ -115,7 +116,7 @@ events.serverOpen.on(() => {
 })
 
 function createUpdatedObjectIfKeysIfNotEqual(obj: any, exampleObj: any) {
-    // Goal: Should return an OBJ that A.) Adds missing keys from exampleObj and B.) Removes keys not in exampleObj
+    // Goal: Should return an OBJ that A. Adds missing keys from exampleObj and B. Removes keys not in exampleObj
     // NOTE: This will not validate types of params, just that they exist.
     const newObject: any = {}
 
@@ -197,6 +198,7 @@ function createDefaultConfig(): Config {
                     giveWandCommandEnabled: true,
                     addPlayerCommandEnabled: true,
                     removePlayerCommandEnabled: true,
+                    setClaimNameCommandEnabled: true,
                 }
             },
             fclaim: {

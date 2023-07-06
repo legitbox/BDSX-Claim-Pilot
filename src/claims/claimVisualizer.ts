@@ -84,7 +84,7 @@ events.serverOpen.on(() => {
     }, CONFIG.visualizerUpdateRate);
 })
 
-events.packetSend(MinecraftPacketIds.SpawnParticleEffect).on((pkt, ni) => {
+events.packetSend(MinecraftPacketIds.SpawnParticleEffect).on((_p, ni) => {
     if (claimViewer === undefined) {
         return;
     }

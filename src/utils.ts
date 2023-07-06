@@ -1,4 +1,4 @@
-// Way to generate IDs that dont look horrendous in a text editor
+// Way to generate IDs that don't look horrendous in a text editor
 import {VectorXYZ} from "bdsx/common";
 import {ItemStack} from "bdsx/bds/inventory";
 import {CONFIG} from "./configManager";
@@ -90,7 +90,7 @@ export function createWand() {
     return wandItem;
 }
 
-// Kind of messy, maybe a better way to do this but it should be fast enough to not have any performance issue
+// Kind of messy, maybe a better way to do this, but it should be fast enough to not have any performance issue
 export function generateBox(cornerOne: SerializableVec3, cornerTwo: SerializableVec3) {
     const boxCorners = new BoxCorners(cornerOne, cornerTwo);
 
