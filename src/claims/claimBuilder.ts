@@ -1,5 +1,5 @@
 import {SerializableVec3} from "../SerializableTypes/SerializableVec3";
-import {Claim, getClaimAtPos, isAnyClaimInBox, registerNewClaim} from "./claim";
+import {Claim, getClaimAtPos, isAnyClaimInBox, registerNewClaim, registerNewServerClaim} from "./claim";
 import {DimensionId} from "bdsx/bds/actor";
 import {BlockPos} from "bdsx/bds/blockpos";
 import {ServerPlayer} from "bdsx/bds/player";
@@ -17,6 +17,49 @@ export enum ClaimBuildFailReason {
 }
 
 const builders: Map<string, ClaimBuilder> = new Map();
+let serverClaimBuilders: string[] = [];
+
+export function isPlayerServerBuilder(playerXuid: string) {
+    return serverClaimBuilders.includes(playerXuid);
+}
+
+export enum PlayerServerBuilderToggleResult {
+    Success,
+    AlreadyBuildingClaim,
+    AlreadyBuilder,
+    AlreadyNotBuilder,
+}
+
+export function setPlayerServerBuilderState(playerXuid: string, enabled: boolean) {
+    if (builders.has(playerXuid)) {
+        return PlayerServerBuilderToggleResult.AlreadyBuildingClaim;
+    }
+
+    if (enabled) {
+        if (!isPlayerServerBuilder(playerXuid)) {
+            serverClaimBuilders.push(playerXuid);
+            return PlayerServerBuilderToggleResult.Success;
+        } else {
+            return PlayerServerBuilderToggleResult.AlreadyBuilder;
+        }
+    } else {
+        let didRemove = false;
+        serverClaimBuilders = serverClaimBuilders.filter((value) => {
+            let isRemoving = value === playerXuid;
+            if (isRemoving) {
+                didRemove = true;
+            }
+
+            return !isRemoving;
+        })
+
+        if (didRemove) {
+            return PlayerServerBuilderToggleResult.Success
+        } else {
+            return PlayerServerBuilderToggleResult.AlreadyNotBuilder;
+        }
+    }
+}
 
 export class ClaimBuilder {
     ownerXuid: string;
@@ -55,7 +98,7 @@ export class ClaimBuilder {
         return this;
     }
 
-    build() {
+    build(isServer: boolean = false) {
         if (this.pos2 === undefined) {
             return ClaimBuildFailReason.NoPos2
         } else if (this.name === undefined) {
@@ -73,38 +116,42 @@ export class ClaimBuilder {
 
         const res = addUsedBlocksToPlayer(this.ownerXuid, blockCost);
 
-        if (!res) {
+        if (!res && !isServer) {
             return ClaimBuildFailReason.InsufficientBlocks;
         }
 
-        if (CONFIG.claimMinimumWidth !== -1) {
+        if (CONFIG.claimMinimumWidth !== -1 && !isServer) {
             const width = Math.round(cornerTwo.x - cornerOne.x);
             if (width < CONFIG.claimMinimumWidth) {
                 return ClaimBuildFailReason.TooSmall;
             }
         }
 
-        if (CONFIG.claimMinimumLength !== -1) {
+        if (CONFIG.claimMinimumLength !== -1 && !isServer) {
             const length = Math.round(cornerTwo.z - cornerOne.z);
             if (length < CONFIG.claimMinimumLength) {
                 return ClaimBuildFailReason.TooSmall;
             }
         }
 
-        if (CONFIG.claimMinimumHeight !== -1) {
+        if (CONFIG.claimMinimumHeight !== -1 && !isServer) {
             const height = Math.round(cornerTwo.y - cornerOne.y);
             if (height < CONFIG.claimMinimumHeight) {
                 return ClaimBuildFailReason.TooSmall;
             }
         }
 
-        if (CONFIG.claimMinimumBlocks !== -1) {
+        if (CONFIG.claimMinimumBlocks !== -1 && !isServer) {
             if (blockCost < CONFIG.claimMinimumBlocks) {
                 return ClaimBuildFailReason.TooSmall;
             }
         }
 
-        return registerNewClaim(this.ownerXuid, this.name, this.pos1, this.pos2, this.dimensionId);
+        if (isServer) {
+            return registerNewServerClaim(this.name, this.pos1, this.pos2, this.dimensionId);
+        } else {
+            return registerNewClaim(this.ownerXuid, this.name, this.pos1, this.pos2, this.dimensionId);
+        }
     }
 }
 
@@ -139,28 +186,38 @@ export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
         return;
     }
 
-    const xuid = player.getXuid();
-    const availableBlocks = getPlayerFreeBlocks(xuid);
-    if (availableBlocks <= 0) {
-        player.sendMessage('§cYou dont have any free blocks!');
-        return;
+    const playerXuid = player.getXuid();
+    const isServerClaim = isPlayerServerBuilder(playerXuid);
+    const claimXuid = isServerClaim ? "SERVER" : playerXuid;
+
+    let availableBlocks;
+    if (!isServerClaim) {
+        availableBlocks = getPlayerFreeBlocks(claimXuid);
+        if (availableBlocks <= 0) {
+            player.sendMessage('§cYou dont have any free blocks!');
+            return;
+        }
     }
 
-    let builder = builders.get(xuid);
+    let builder = builders.get(playerXuid);
 
     if (builder === undefined) {
-        builder = new ClaimBuilder(xuid, pos, dimensionId);
+        builder = new ClaimBuilder(claimXuid, pos, dimensionId);
 
-        builder.setName(`${player.getName()}'s claim`);
+        if (isServerClaim) {
+            builder.setName(`Server Claim`);
+        } else {
+            builder.setName(`${player.getName()}'s claim`);
+        }
 
         player.sendMessage(`§aFirst pos selected! (${pos.x}, ${pos.y}, ${pos.z})`);
 
-        builders.set(xuid, builder);
+        builders.set(playerXuid, builder);
 
         return;
     } else {
         builder.setPos2(pos);
-        const claim = builder.build();
+        const claim = builder.build(isServerClaim);
 
         if (!(claim instanceof Claim)) {
             switch (claim) {
@@ -187,16 +244,24 @@ export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
                     break;
             }
 
-            builders.delete(xuid);
+            builders.delete(playerXuid);
 
             return;
         }
-        const {cornerOne, cornerTwo} = organizeCorners(builder.pos1, builder.pos2!);
-        const blockCost = getNumOfBlocksInBox(cornerOne, cornerTwo);
 
-        player.sendMessage(`§aClaim created! You used §e${blockCost}§a blocks, you have §e${getPlayerFreeBlocks(xuid)}§a blocks remaining!`);
+        if (isServerClaim) {
+            player.sendMessage(`§aServer claim created!`);
 
-        builders.delete(xuid);
+            builders.delete(playerXuid);
+            return;
+        } else {
+            const {cornerOne, cornerTwo} = organizeCorners(builder.pos1, builder.pos2!);
+            const blockCost = getNumOfBlocksInBox(cornerOne, cornerTwo);
+
+            player.sendMessage(`§aClaim created! You used §e${blockCost}§a blocks, you have §e${getPlayerFreeBlocks(playerXuid)}§a blocks remaining!`);
+
+            builders.delete(playerXuid);
+        }
     }
 }
 
@@ -206,4 +271,21 @@ export function getClaimBuilder(xuid: string) {
 
 export function stopBuilder(xuid: string) {
     builders.delete(xuid);
+}
+
+export enum CancelClaimResult {
+    Success,
+    NotABuilder,
+}
+
+export function cancelClaim(xuid: string) {
+    const builder = getClaimBuilder(xuid);
+
+    if (builder === undefined) {
+        return CancelClaimResult.NotABuilder;
+    }
+
+    stopBuilder(xuid);
+
+    return CancelClaimResult.Success;
 }

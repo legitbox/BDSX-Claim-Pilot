@@ -53,11 +53,6 @@ export function saveData() {
     }
 
     for (const [xuid, name] of playersWithStorage) {
-        if (xuid === 'SERVER') {
-            storage.serverClaims = getOwnedClaims(xuid);
-            continue;
-        }
-
         storage[xuid] = {};
 
         const ownedClaims = getOwnedClaims(xuid);
@@ -118,6 +113,35 @@ export function saveData() {
             storage[xuid].extraData[data[0]] = data[1];
         }
     }
+
+    const serverClaims = getOwnedClaims("SERVER");
+    const serverClaimsData: any[] = [];
+    for (const claim of serverClaims) {
+        const memberXuids = Object.keys(claim.members);
+        const membersData: any = {};
+        for (const xuid of memberXuids) {
+            const memberPermMap = claim.members[xuid];
+
+            const permData: any = {};
+            for (const [permission, value] of memberPermMap.entries()) {
+                permData[permission] = value;
+            }
+
+            membersData[xuid] = permData;
+        }
+
+        serverClaimsData.push({
+            owner: claim.owner,
+            name: claim.name,
+            id: claim.id,
+            cornerOne: claim.cornerOne,
+            cornerEight: claim.cornerEight,
+            dimension: claim.dimension,
+            members: membersData
+        })
+    }
+
+    storage.serverClaims = serverClaimsData;
 
     writeFileSync(STORAGE_PATH, JSON.stringify(storage, null, 4));
 

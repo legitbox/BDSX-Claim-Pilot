@@ -1,7 +1,12 @@
 import {events} from "bdsx/event";
 import {command, CustomCommandFactory} from "bdsx/command";
 import {CONFIG, sendConfigForm} from "./configManager";
-import {getClaimBuilder, stopBuilder} from "./claims/claimBuilder";
+import {
+    cancelClaim, CancelClaimResult,
+    isPlayerServerBuilder,
+    PlayerServerBuilderToggleResult,
+    setPlayerServerBuilderState,
+} from "./claims/claimBuilder";
 import {
     addToMaxBlocks,
     getPlayerFreeBlocks,
@@ -15,7 +20,7 @@ import {
     playerHasPerms
 } from "./claims/claim";
 import {CommandPermissionLevel, PlayerCommandSelector} from "bdsx/bds/command";
-import {CxxString, int32_t} from "bdsx/nativetype";
+import {bool_t, CxxString, int32_t} from "bdsx/nativetype";
 import {createWand} from "./utils";
 import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
@@ -351,6 +356,52 @@ events.serverOpen.on(() => {
                     player: PlayerCommandSelector,
                 })
         }
+
+        if (CONFIG.commandOptions.fclaim.subcommandOptions.serverClaimCreationModeToggleCommandEnabled) {
+            moderatorClaimCommand
+                .overload((params, origin, output) => {
+                    const player = origin.getEntity();
+                    if (player === null || !player.isPlayer()) {
+                        output.error("Command needs to be ran by a player!");
+                        return;
+                    }
+
+                    const xuid = player.getXuid();
+
+                    let newState;
+                    if (params.enabled !== undefined) {
+                        newState = params.enabled;
+                    } else {
+                        newState = !isPlayerServerBuilder(xuid);
+                    }
+
+                    switch (setPlayerServerBuilderState(xuid, newState)) {
+                        case PlayerServerBuilderToggleResult.Success: {
+                            const message = newState ? "§aYou are now a server builder!" : "§aYou are no longer a server builder!";
+                            output.success(message);
+                            break;
+                        }
+
+                        case PlayerServerBuilderToggleResult.AlreadyNotBuilder: {
+                            output.error("You are already not a server builder!");
+                            break;
+                        }
+
+                        case PlayerServerBuilderToggleResult.AlreadyBuilder: {
+                            output.error("You are already a server builder!");
+                            break;
+                        }
+
+                        case PlayerServerBuilderToggleResult.AlreadyBuildingClaim: {
+                            output.error("You cant toggle your server builder state while already building a claim!");
+                            break;
+                        }
+                    }
+                }, {
+                    options: command.enum('options.sclaimbuildertoggle', 'sclaimbuildertoggle'),
+                    enabled: [bool_t, true],
+                })
+        }
     }
 
     if (CONFIG.commandOptions.playtime.isEnabled) {
@@ -650,22 +701,6 @@ function sendClaimForm(xuid: string) {
                 break;
             }
     });
-}
-
-enum CancelClaimResult {
-    Success,
-    NotABuilder,
-}
-function cancelClaim(xuid: string) {
-    const builder = getClaimBuilder(xuid);
-
-    if (builder === undefined) {
-        return CancelClaimResult.NotABuilder;
-    }
-
-    stopBuilder(xuid);
-
-    return CancelClaimResult.Success;
 }
 
 enum DeleteClaimEnumResult {
