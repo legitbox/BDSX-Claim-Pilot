@@ -9,4 +9,3 @@ package-lock.json
 
 # Ignore claim storage
 src/Storage/claimsData.json
-config.json

@@ -48,3 +48,4 @@ export function updatePermissions(permissions: ClaimPermission) {
 
 // Area for registering built in permissions
 registerPermission("edit_members", false);
+registerPermission("edit_name", false);

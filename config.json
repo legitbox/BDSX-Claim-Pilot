@@ -45,7 +45,8 @@
                 "giveWandCommandEnabled": true,
                 "addPlayerCommandEnabled": true,
                 "removePlayerCommandEnabled": true,
-                "setClaimNameCommandEnabled": true
+                "setClaimNameCommandEnabled": true,
+                "managedMergedClaimsCommandEnabled": true
             }
         },
         "fclaim": {

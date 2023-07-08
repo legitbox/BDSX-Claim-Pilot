@@ -1,5 +1,12 @@
 import {BlockInfo, getPlayerBlockInfo, setPlayerBlockInfo} from "../claims/claimBlocksManager";
-import {Claim, getOwnedClaims, registerClaim, registerServerClaim} from "../claims/claim";
+import {
+    Claim,
+    ClaimGroup,
+    getOwnedClaims,
+    getOwnedGroups,
+    registerClaim, registerClaimGroup,
+    registerServerClaim, registerServerClaimGroup
+} from "../claims/claim";
 import {readFileSync, writeFileSync} from "fs";
 import {fsutil} from "bdsx/fsutil";
 import {events} from "bdsx/event";
@@ -58,10 +65,10 @@ export function saveData() {
         const ownedClaims = getOwnedClaims(xuid);
         const memberClaimData: any[] = [];
         for (const claim of ownedClaims) {
-            const memberXuids = Object.keys(claim.members);
+            const memberXuids = claim.getMemberXuids();
             const membersData: any = {};
             for (const xuid of memberXuids) {
-                const memberPermMap = claim.members[xuid];
+                const memberPermMap = claim.getMemberPermissions(xuid)!;
 
                 const permData: any = {};
                 for (const [permission, value] of memberPermMap.entries()) {
@@ -73,7 +80,7 @@ export function saveData() {
 
             memberClaimData.push({
                 owner: claim.owner,
-                name: claim.name,
+                name: claim.getName(true),
                 id: claim.id,
                 cornerOne: claim.cornerOne,
                 cornerEight: claim.cornerEight,
@@ -82,6 +89,7 @@ export function saveData() {
             })
         }
 
+        storage[xuid].groups = getOwnedGroups(xuid);
         storage[xuid].claims = memberClaimData;
         storage[xuid].blockInfo = getPlayerBlockInfo(xuid);
         storage[xuid].totalTime = getTotalTime(xuid);
@@ -117,10 +125,10 @@ export function saveData() {
     const serverClaims = getOwnedClaims("SERVER");
     const serverClaimsData: any[] = [];
     for (const claim of serverClaims) {
-        const memberXuids = Object.keys(claim.members);
+        const memberXuids = claim.getMemberXuids();
         const membersData: any = {};
         for (const xuid of memberXuids) {
-            const memberPermMap = claim.members[xuid];
+            const memberPermMap = claim.getMemberPermissions(xuid)!;
 
             const permData: any = {};
             for (const [permission, value] of memberPermMap.entries()) {
@@ -132,7 +140,7 @@ export function saveData() {
 
         serverClaimsData.push({
             owner: claim.owner,
-            name: claim.name,
+            name: claim.getName(true),
             id: claim.id,
             cornerOne: claim.cornerOne,
             cornerEight: claim.cornerEight,
@@ -142,6 +150,32 @@ export function saveData() {
     }
 
     storage.serverClaims = serverClaimsData;
+
+    const serverGroups = getOwnedGroups("SERVER");
+    const serverGroupData: any[] = [];
+    for (const group of serverGroups) {
+        const memberPermissions: any = {};
+        const memberXuids = Object.keys(group.members);
+        for (const xuid of memberXuids) {
+            const permissionMap = group.members[xuid];
+            const permRecord: Record<string, boolean> = {};
+            for (const [perm, value] of permissionMap.entries()) {
+                permRecord[perm] = value;
+            }
+
+            memberPermissions[xuid] = permRecord;
+        }
+
+        serverGroupData.push({
+            groupId: group.groupId,
+            groupName: group.groupName,
+            ownerXuid: group.ownerXuid,
+            claimIds: group.claimIds,
+            members: memberPermissions,
+        })
+    }
+
+    storage.serverGroups = serverGroupData;
 
     writeFileSync(STORAGE_PATH, JSON.stringify(storage, null, 4));
 
@@ -199,6 +233,15 @@ function loadData() {
             playerNameMap.set(xuid, playerData.name);
         }
 
+        if (Object.keys(playerData).includes('groups')) {
+            const groupDatas = playerData.groups;
+            for (const groupData of groupDatas) {
+                const group = ClaimGroup.fromData(groupData);
+
+                registerClaimGroup(group);
+            }
+        }
+
         if (playerData.extraData !== undefined) {
             const keys = Object.keys(playerData.extraData);
 
@@ -216,6 +259,13 @@ function loadData() {
         for (const claimData of data.serverClaims) {
             const claim = Claim.fromData(claimData);
             registerServerClaim(claim);
+        }
+    }
+
+    if (data.serverGroups !== undefined) {
+        for (const groupData of data.serverGroups) {
+            const group = ClaimGroup.fromData(groupData);
+            registerServerClaimGroup(group);
         }
     }
 

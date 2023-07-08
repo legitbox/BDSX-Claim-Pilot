@@ -2,7 +2,8 @@ import {events} from "bdsx/event";
 import {command, CustomCommandFactory} from "bdsx/command";
 import {CONFIG, sendConfigForm} from "./configManager";
 import {
-    cancelClaim, CancelClaimResult,
+    cancelClaim,
+    CancelClaimResult,
     isPlayerServerBuilder,
     PlayerServerBuilderToggleResult,
     setPlayerServerBuilderState,
@@ -15,22 +16,25 @@ import {
 } from "./claims/claimBlocksManager";
 import {
     Claim,
-    deleteClaim,
+    ClaimGroup,
+    deleteClaim, deleteClaimGroup,
     getClaimAtPos,
-    playerHasPerms
+    getOwnedClaims,
+    getOwnedGroups,
+    playerHasPerms, registerClaimGroup
 } from "./claims/claim";
 import {CommandPermissionLevel, PlayerCommandSelector} from "bdsx/bds/command";
 import {bool_t, CxxString, int32_t} from "bdsx/nativetype";
-import {createWand} from "./utils";
+import {createWand, generateID} from "./utils";
 import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
-import {CustomForm, FormButton, FormInput, FormLabel, FormToggle, SimpleForm} from "bdsx/bds/form";
+import {CustomForm, FormButton, FormInput, FormLabel, FormToggle, ModalForm, SimpleForm} from "bdsx/bds/form";
 import {decay} from "bdsx/decay";
 import {getCurrentClaim} from "./claims/claimDetection";
 import {ServerPlayer} from "bdsx/bds/player";
 import {getName, saveData} from "./Storage/storageManager";
-import isDecayed = decay.isDecayed;
 import {createDefaultClaimPermission} from "./claims/claimPermissionManager";
+import isDecayed = decay.isDecayed;
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
 let moderatorClaimCommand: CustomCommandFactory | undefined = undefined;
@@ -196,12 +200,13 @@ events.serverOpen.on(() => {
                     for (const target of targets) {
                         const targetXuid = target.getXuid();
                         const res = addPlayerToClaim(claim, targetXuid);
+                        const claimName = claim.getName();
                         switch (res) {
                             case AddPlayerResult.Success:
-                                output.success(`§e${target.getName()} is now a member of ${claim.name}!`);
+                                output.success(`§e${target.getName()} is now a member of ${claimName}!`);
                                 break;
                             case AddPlayerResult.AlreadyMember:
-                                output.error(`${target.getName()} is already a member of ${claim.name}!`);
+                                output.error(`${target.getName()} is already a member of ${claimName}!`);
                                 break;
                         }
                     }
@@ -245,12 +250,13 @@ events.serverOpen.on(() => {
                     for (const target of targets) {
                         const targetXuid = target.getXuid();
                         const res = removePlayerFromClaim(claim, targetXuid);
+                        const claimName = claim.getName();
                         switch (res) {
                             case RemovePlayerResult.Success:
-                                output.success(`§e${target.getName()}§a is no longer a member of §e${claim.name}`);
+                                output.success(`§e${target.getName()}§a is no longer a member of §e${claimName}`);
                                 break;
                             case RemovePlayerResult.NotAMember:
-                                output.error(`${target.getName()} is not a member of ${claim.name}!`);
+                                output.error(`${target.getName()} is not a member of ${claimName}!`);
                                 break;
                             case RemovePlayerResult.CantRemoveOwner:
                                 output.error('You cant remove the owner from a claim!');
@@ -292,12 +298,27 @@ events.serverOpen.on(() => {
                         return;
                     }
 
-                    claim.name = trimmedName;
+                    claim.setName(trimmedName);
 
                     output.success(`§aSet claim name to §e${trimmedName}§a!`);
                 }, {
                     options: command.enum('options.setname', 'setname'),
                     name: CxxString,
+                })
+        }
+
+        if (CONFIG.commandOptions.claim.subcommandOptions.managedMergedClaimsCommandEnabled) {
+            claimCommand
+                .overload((_p, origin, output) => {
+                    const player = origin.getEntity();
+                    if (player === null || !player.isPlayer()) {
+                        output.error("Command need to be ran by a player!");
+                        return;
+                    }
+                    
+                    openClaimMergeOptionsForm(player);
+                }, {
+                    options: command.enum('options.group', 'group'),
                 })
         }
     }
@@ -521,6 +542,11 @@ function sendClaimForm(xuid: string) {
         buttonIds.push('setname');
     }
 
+    if (CONFIG.commandOptions.claim.subcommandOptions.managedMergedClaimsCommandEnabled) {
+        buttons.push(new FormButton('Manage Groups'));
+        buttonIds.push('group');
+    }
+
     const form = new SimpleForm('Claim Subcommands', 'Select an option:', buttons);
 
     form.sendTo(player.getNetworkIdentifier(), (form) => {
@@ -602,12 +628,13 @@ function sendClaimForm(xuid: string) {
                         }
 
                         const res = addPlayerToClaim(claim, foundPlayer.getXuid());
+                        const claimName = claim.getName();
                         switch (res) {
                             case AddPlayerResult.Success:
-                                player.sendMessage(`§e${foundPlayer.getName()}§a is now a member of §e${claim.name}§a!`);
+                                player.sendMessage(`§e${foundPlayer.getName()}§a is now a member of §e${claimName}§a!`);
                                 break;
                             case AddPlayerResult.AlreadyMember:
-                                player.sendMessage(`§c${foundPlayer.getName()} is already a member of ${claim.name}!`);
+                                player.sendMessage(`§c${foundPlayer.getName()} is already a member of ${claimName}!`);
                                 break;
                         }
                     })
@@ -627,7 +654,7 @@ function sendClaimForm(xuid: string) {
                     return;
                 }
 
-                let memberXuids = Object.keys(claim.members);
+                let memberXuids = claim.getMemberXuids();
                 const memberNames: string[] = [];
                 const indexesToRemove: number[] = [];
                 for (let i = 0; i < memberXuids.length; i++) {
@@ -661,9 +688,10 @@ function sendClaimForm(xuid: string) {
                     const name = getName(xuid);
 
                     const res = removePlayerFromClaim(claim, xuid);
+                    const claimName = claim.getName();
                     switch (res) {
                         case RemovePlayerResult.Success:
-                            player.sendMessage(`§aRemoved §e${name}§a from §e${claim.name}`);
+                            player.sendMessage(`§aRemoved §e${name}§a from §e${claimName}`);
                             break;
                         case RemovePlayerResult.CantRemoveOwner:
                             player.sendMessage('§cYou cant remove the owner from their own claim!');
@@ -699,6 +727,9 @@ function sendClaimForm(xuid: string) {
                 })
 
                 break;
+
+            case 'group':
+                openClaimMergeOptionsForm(player);
             }
     });
 }
@@ -754,13 +785,13 @@ enum AddPlayerResult {
 }
 
 function addPlayerToClaim(claim: Claim, playerXuid: string) {
-    const members = Object.keys(claim.members);
+    const members = claim.getMemberXuids();
     if (claim.owner === playerXuid || members.includes(playerXuid)) {
         return AddPlayerResult.AlreadyMember;
     }
 
-    claim.members[playerXuid] = createDefaultClaimPermission();
-    
+    claim.setMemberPermissions(playerXuid, createDefaultClaimPermission());
+
     saveData();
 
     return AddPlayerResult.Success;
@@ -773,7 +804,7 @@ enum RemovePlayerResult {
 }
 
 function removePlayerFromClaim(claim: Claim, playerXuid: string) {
-    const members = Object.keys(claim.members);
+    const members = claim.getMemberXuids();
     if (claim.owner === playerXuid) {
         return RemovePlayerResult.CantRemoveOwner;
     }
@@ -782,7 +813,7 @@ function removePlayerFromClaim(claim: Claim, playerXuid: string) {
         return RemovePlayerResult.NotAMember;
     }
 
-    delete claim.members[playerXuid];
+    claim.removeMember(playerXuid);
 
     return RemovePlayerResult.Success;
 }
@@ -880,46 +911,406 @@ enum SendClaimNameFormFailReason {
 }
 
 async function sendClaimNameInputForm(player: ServerPlayer): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
-        if (claim === undefined) {
-            reject(SendClaimNameFormFailReason.NoClaim);
+    const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
+    if (claim === undefined) {
+        throw SendClaimNameFormFailReason.NoClaim;
+    }
+
+    const xuid = player.getXuid();
+    if (
+        claim.owner !== xuid &&
+        player.getCommandPermissionLevel() === CommandPermissionLevel.Normal &&
+        playerHasPerms(claim, xuid, "edit_name")
+    ) {
+        throw SendClaimNameFormFailReason.NoPermission;
+    }
+
+    const isModifyingGroup = claim.tryGetGroup() !== undefined;
+
+    const namingType = isModifyingGroup ? "Group" : "Claim";
+
+    let inputName;
+    try {
+        inputName = await sendTextInputForm(player, `${namingType} Name`, `Enter the ${namingType} name:`, claim.getName());
+    } catch {
+        throw SendClaimNameFormFailReason.Cancelled;
+    }
+    const trimmedInput = inputName.trim();
+
+    if (trimmedInput === "") {
+        throw SendClaimNameFormFailReason.BlankName
+    }
+    
+    claim.setName(trimmedInput);
+
+    player.sendMessage(`The ${namingType} has been renamed to ${trimmedInput}`);
+
+    return trimmedInput;
+}
+
+function openClaimMergeOptionsForm(player: ServerPlayer) {
+    const playerXuid = player.getXuid();
+
+    const isServer = isPlayerServerBuilder(playerXuid);
+    const ownerXuid = isServer ? "SERVER" : playerXuid;
+
+    const form = new SimpleForm(`${isServer ? "Server " : ""}Group Options`, "Select an option:", [
+        new FormButton(`Edit Existing Group`),
+        new FormButton("Create New Group"),
+        new FormButton("Delete Group"),
+    ]);
+
+    form.sendTo(player.getNetworkIdentifier(), async (data) => {
+        if (data.response === null || isDecayed(player)) {
             return;
         }
-        
-        const xuid = player.getXuid();
-        if (
-            claim.owner !== xuid &&
-            player.getCommandPermissionLevel() === CommandPermissionLevel.Normal
-        ) {
-            reject(SendClaimNameFormFailReason.NoPermission);
+
+        let selectedGroup: ClaimGroup;
+        let ownedGroups: ClaimGroup[] | undefined;
+
+        switch (data.response) {
+            case 0: // Edit existing group
+                ownedGroups = getOwnedGroups(ownerXuid);
+                if (ownedGroups.length === 0) {
+                    player.sendMessage("You don't have any groups!");
+                    return;
+                }
+
+                try {
+                    selectedGroup = await sendSelectGroupForm(player, ownedGroups);
+                } catch {
+                    return;
+                }
+
+                sendEditGroupFrom(player, selectedGroup, isServer);
+                break;
+            case 1: // Create new Group
+                const nonGroupedClaims = getClaimsNotInGroup(ownerXuid);
+
+                if (nonGroupedClaims.length === 0) {
+                    player.sendMessage("There are no claims to create a group for!");
+                    return;
+                }
+
+                let groupName;
+                try {
+                    groupName = await sendTextInputForm(player, "Group Name Setter", "Enter the name for the group", `${player.getName()}'s Group`);
+                } catch {
+                    return;
+                }
+
+                ownedGroups = getOwnedGroups(ownerXuid);
+                if (ownedGroups !== undefined) {
+                    for (const group of ownedGroups) {
+                        if (group.groupName === groupName) {
+                            player.sendMessage(`§c${!isServer ? "You already have" : "The Server already has"} a group with that name!`);
+                            return;
+                        }
+                    }
+                }
+
+                const group = new ClaimGroup(
+                    generateID(16),
+                    groupName,
+                    ownerXuid,
+                    [],
+                    {},
+                );
+                
+                registerClaimGroup(group);
+
+                player.sendMessage(`§aCreated a group with the name §e${groupName}§a!`);
+                break;
+            case 2: // Delete group
+                let isRemovingGroup = true;
+                while (isRemovingGroup) {
+                    ownedGroups = getOwnedGroups(ownerXuid);
+                    if (ownedGroups.length === 0) {
+                        player.sendMessage("§cYou have no Groups!");
+                        isRemovingGroup = false;
+                        continue;
+                    }
+
+                    try {
+                        selectedGroup = await sendSelectGroupForm(player, ownedGroups);
+                    } catch {
+                        isRemovingGroup = false;
+                        continue;
+                    }
+
+                    try {
+                        deleteClaimGroup(selectedGroup);
+                        player.sendMessage("§aGroup deleted!");
+                    } catch {
+                        player.sendMessage("§cGroup already deleted!");
+                    }
+
+                    if (ownedGroups.length === 1) {
+                        isRemovingGroup = false;
+                    } else {
+                        try {
+                            isRemovingGroup = await sendYesNoForm(player, "Remove Another?", "Do you want to remove another Group?");
+                        } catch {
+                            isRemovingGroup = false;
+                        }
+                    }
+                }
+
+                break;
+        }
+    })
+}
+
+async function sendSelectGroupForm(player: ServerPlayer, groups: ClaimGroup[]): Promise<ClaimGroup> {
+    const buttons: FormButton[] = [];
+    for (const group of groups) {
+        buttons.push(new FormButton(group.groupName));
+    }
+
+    const form = new SimpleForm("Group List", "Select the group you want:", buttons);
+
+    return new Promise((resolve, reject) => {
+        form.sendTo(player.getNetworkIdentifier(), (data) => {
+            if (data.response === null || isDecayed(player)) {
+                reject();
+            }
+
+            resolve(groups[data.response]);
+        })
+    })
+}
+
+function sendEditGroupFrom(player: ServerPlayer, group: ClaimGroup, isServer: boolean) {
+    const form = new SimpleForm("Group Options", "Select an option:", [
+        new FormButton("Add Claim to Group"),
+        new FormButton("Remove Claim from Group"),
+        new FormButton("Edit Existing Claim"),
+    ])
+
+    form.sendTo(player.getNetworkIdentifier(), async (data) => {
+        if (data.response === null || isDecayed(player)) {
+            return;
         }
 
-        const defaultName = claim.name;
+        const xuid = isServer ? "SERVER" : player.getXuid();
+        let claim: Claim;
+        let groupedClaims;
 
-        const form = new CustomForm("Claim Name", [
-            new FormInput('Enter the claim name:', defaultName, defaultName),
+        switch (data.response) {
+            case 0:
+                let isAddingAnother = true;
+
+                let isFirstLoop = true;
+
+                while (isAddingAnother) {
+                    const allNonGroupedClaims = getClaimsNotInGroup(xuid)
+
+                    if (allNonGroupedClaims.length === 0) {
+                        player.sendMessage(`§cYou have no ${isFirstLoop ? "" : "more "}claims to add!`);
+                        isAddingAnother = false;
+                        continue;
+                    }
+
+                    isFirstLoop = false;
+
+                    try {
+                        claim = await sendSelectClaimForm(player, allNonGroupedClaims);
+                    } catch {
+                        isAddingAnother = false;
+                        continue;
+                    }
+
+                    if (group.claimIds.includes(claim.id)) {
+                        player.sendMessage("§cThat claim is already in the group!");
+                        return;
+                    }
+
+                    group.claimIds.push(claim.id);
+
+                    player.sendMessage(`§e${claim.getName(true)}§a added to the group!`);
+
+                    if (allNonGroupedClaims.length === 1) {
+                        isAddingAnother = false;
+                        continue;
+                    }
+
+                    const existingMemberData = group.members;
+                    const claimMemberData = claim.getMemberObject(true);
+                    const claimMemberXuids = claim.getMemberXuids();
+
+                    for (const memberXuid of claimMemberXuids) {
+                        if (existingMemberData[memberXuid] === undefined) {
+                            existingMemberData[memberXuid] = claimMemberData[memberXuid];
+                        }
+                    }
+
+                    try {
+                        isAddingAnother = await sendYesNoForm(player, "Add Another?", "Do you want to add another claim?");
+                    } catch {
+                        isAddingAnother = false;
+                    }
+                }
+
+                break;
+            case 1:
+                let isRemovingAnother = true;
+                while (isRemovingAnother) {
+                    groupedClaims = group.getClaims();
+                    if (groupedClaims.length === 0) {
+                        player.sendMessage("§cThere are no claims in this group!");
+                        isRemovingAnother = false;
+                        continue;
+                    }
+
+                    try {
+                        claim = await sendSelectClaimForm(player, groupedClaims);
+                    } catch {
+                        isRemovingAnother = false;
+                        continue;
+                    }
+
+                    let didRemove = false;
+                    const newClaimGroupIds: string[] = group.claimIds.filter((value) => {
+                        let willRemove = value === claim.id;
+                        if (willRemove) {
+                            didRemove = true;
+                        }
+
+                        return !willRemove;
+                    });
+
+                    if (!didRemove) {
+                        player.sendMessage("§cThat claim isn't in the group!");
+                    } else {
+                        group.claimIds = newClaimGroupIds;
+
+                        player.sendMessage(`§e${claim.getName(true)}§a removed from the group!`);
+                    }
+
+                    if (groupedClaims.length === 1) {
+                        isRemovingAnother = false;
+                    } else {
+                        try {
+                            isRemovingAnother = await sendYesNoForm(player, "Remove Another?", "Remove another claim?");
+                        } catch {
+                            isRemovingAnother = false;
+                        }
+                    }
+                }
+
+                break;
+            case 2:
+                groupedClaims = group.getClaims();
+
+                if (groupedClaims.length === 0) {
+                    player.sendMessage("§cThere are no claims linked to this Group!");
+                    return;
+                }
+
+                try {
+                    claim = await sendSelectClaimForm(player, groupedClaims);
+                } catch {
+                    return;
+                }
+
+                sendEditClaimForm(player, claim);
+                break;
+        }
+    });
+}
+
+async function sendSelectClaimForm(player: ServerPlayer, claimList: Claim[], title: string = "Claim List", description: string = "Select a claim"): Promise<Claim> {
+    const buttons: FormButton[] = [];
+    for (const claim of claimList) {
+        buttons.push(new FormButton(claim.getName(true)));
+    }
+
+    const form = new SimpleForm(title, description, buttons);
+
+    return new Promise((resolve, reject) => {
+        form.sendTo(player.getNetworkIdentifier(), (data) => {
+            if (data.response === null || isDecayed(player)) {
+                reject();
+            }
+
+            resolve(claimList[data.response]);
+        })
+    })
+}
+
+async function sendTextInputForm(player: ServerPlayer, title: string, description: string, defaultName?: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+
+        const form = new CustomForm(title, [
+            new FormInput(description, defaultName, defaultName),
         ])
 
 
         form.sendTo(player.getNetworkIdentifier(), (res) => {
             if (res.response === null || isDecayed(player)) {
-                reject(SendClaimNameFormFailReason.Cancelled);
+                reject();
                 return;
             }
 
-            const trimmedName = res.response[0].trim();
-            if (trimmedName === "") {
-                reject(SendClaimNameFormFailReason.BlankName);
-                return;
-            }
-
-            claim.name = trimmedName;
-            player.sendMessage(`§aClaim name set to §e${trimmedName}§a!`);
-
-            saveData();
-
-            resolve(trimmedName);
+            resolve(res.response[0]);
         })
     });
+}
+
+function sendEditClaimForm(player: ServerPlayer, claim: Claim) {
+    const form = new SimpleForm("Claim Configuration", "Select an option:", [
+        new FormButton("Edit Name"),
+    ])
+
+    form.sendTo(player.getNetworkIdentifier(), async (data) => {
+        if (data.response === null || isDecayed(player)) {
+            return;
+        }
+
+        switch (data.response) {
+            case 0:
+                let selectedName = await sendTextInputForm(player, "Claim Name", 'Enter the claim name:', claim.getName(true));
+                let trimmedName = selectedName.trim();
+                if (trimmedName === "") {
+                    player.sendMessage("§cName can't be blank!");
+                    return;
+                }
+
+                claim.setName(trimmedName, true);
+
+                player.sendMessage(`§aRenamed claim in group to §e${trimmedName}§a!`);
+
+                break;
+        }
+    })
+}
+
+function getClaimsNotInGroup(playerXuid: string) {
+    const claims: Claim[] = [];
+    const ownedClaims = getOwnedClaims(playerXuid);
+    for (const claim of ownedClaims) {
+        if (claim.tryGetGroup() === undefined) {
+            claims.push(claim);
+        }
+    }
+
+    return claims;
+}
+
+async function sendYesNoForm(player: ServerPlayer, title: string, description: string): Promise<boolean> {
+    const form = new ModalForm(title, description);
+
+    form.setButtonCancel("No");
+    form.setButtonConfirm("Yes");
+
+    return new Promise((resolve, reject) => {
+        form.sendTo(player.getNetworkIdentifier(), (data) => {
+            if (isDecayed(player)) {
+                reject();
+                return;
+            }
+
+            resolve(data.response === true);
+        })
+    })
 }

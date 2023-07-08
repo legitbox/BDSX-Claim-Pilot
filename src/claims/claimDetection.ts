@@ -33,8 +33,13 @@ events.serverOpen.on(() => {
                 currentClaims.delete(xuid);
                 shouldFire = true;
             } else if (claim !== undefined && currentClaim !== claim.id) {
+                const group = claim.tryGetGroup();
+
                 currentClaims.set(xuid, claim.id);
-                shouldFire = true;
+
+                if (group === undefined || (currentClaim === undefined || !group.claimIds.includes(currentClaim))) {
+                    shouldFire = true;
+                }
             }
 
             if (shouldFire) {
@@ -52,7 +57,7 @@ function onClaimInteraction(player: ServerPlayer, claim: Claim | undefined) {
         return;
     }
 
-    player.sendMessage(`§eEntered §d${claim.name}§e!`);
+    player.sendMessage(`§eEntered §d${claim.getName()}§e!`);
 }
 
 export function getCurrentClaim(xuid: string) {
