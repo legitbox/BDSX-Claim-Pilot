@@ -96,20 +96,78 @@ export interface Config {
 
 export let CONFIG: Config;
 
-if (isFileSync(CONFIG_PATH)) {
-    CONFIG = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
+const configOverrides: Map<string, any> = new Map(); // Key: permission.key Value: Permission value
 
-    const defaultConfig = createDefaultConfig();
-    const updatedConfig = createUpdatedObjectIfKeysIfNotEqual(CONFIG, defaultConfig);
+export enum ConfigOverrideResult {
+    Success,
+    InvalidKey,
+    OverlappingOverride,
+}
 
-    if (updatedConfig !== undefined) {
-        CONFIG = updatedConfig;
+export function registerConfigOverride(permissionKey: string, forcedValue: any) {
+    const keyChain = permissionKey.split(".");
+
+    let defaultConfig: any = createDefaultConfig();
+    let lastCheckedValue: any = undefined;
+    for (const key of keyChain) {
+        lastCheckedValue = defaultConfig[key];
+
+        if (lastCheckedValue === undefined) {
+            return ConfigOverrideResult.InvalidKey;
+        }
+    }
+
+    const existingOverride = configOverrides.get(permissionKey);
+    if (existingOverride !== undefined) {
+        // TODO: Implement recursive object comparison
+        if (forcedValue !== existingOverride) {
+            return ConfigOverrideResult.OverlappingOverride;
+        }
+    } else {
+        configOverrides.set(permissionKey, forcedValue);
+    }
+
+    return ConfigOverrideResult.Success
+}
+
+events.serverLoading.on(() => {
+    if (isFileSync(CONFIG_PATH)) {
+        CONFIG = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
+
+        const defaultConfig = createDefaultConfig();
+        const updatedConfig = createUpdatedObjectIfKeysIfNotEqual(CONFIG, defaultConfig);
+
+        if (updatedConfig !== undefined) {
+            CONFIG = updatedConfig;
+            writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
+        }
+    } else {
+        CONFIG = createDefaultConfig();
+
         writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
     }
-} else {
-    CONFIG = createDefaultConfig();
 
-    writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
+    // Handle config overrides
+    for (const [permissionKey, value] of configOverrides.entries()) {
+        setValueAtPermissionKey(permissionKey, value);
+    }
+})
+
+function setValueAtPermissionKey(permissionKey: string, value: string) {
+    const defaultConfig: any = createDefaultConfig();
+    let lastReadValue: any = undefined;
+    const keyPath = permissionKey.split(".");
+    for (const [index, key] of keyPath.entries()) {
+        lastReadValue = defaultConfig[key];
+
+        if (lastReadValue === undefined) {
+            throw `INVALID KEY AT ${key}`
+        }
+
+        if (index === (keyPath.length - 1)) {
+            defaultConfig[key] = value;
+        }
+    }
 }
 
 events.serverOpen.on(() => {
