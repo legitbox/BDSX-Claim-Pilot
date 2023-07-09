@@ -5,7 +5,7 @@ import {Vec3} from "bdsx/bds/blockpos";
 import {CxxVector} from "bdsx/cxxvector";
 import {Claim} from "../claims/claim";
 import {CONFIG} from "../configManager";
-import {NON_XUID_STORAGE} from "../Storage/storageManager";
+import {getStoredXuidsFromStorage, NON_XUID_STORAGE} from "../Storage/storageManager";
 
 @nativeClass()
 export class NativeClaimObject extends NativeClass {
@@ -60,12 +60,8 @@ export class NativeStorageObject extends NativeClass {
         const inst = NativeStorageObject.allocate();
 
         inst.players.construct();
-        const xuids = Object.keys(storage);
+        const xuids = getStoredXuidsFromStorage(storage);
         for (const xuid of xuids) {
-            if (NON_XUID_STORAGE.includes(xuid)) {
-                continue;
-            }
-
             const playerInfo = storage[xuid];
 
             const playerInst = NativePlayerObject.uglyConstruct(xuid, playerInfo.claims);

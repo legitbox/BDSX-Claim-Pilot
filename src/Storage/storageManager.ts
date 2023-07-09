@@ -31,6 +31,7 @@ const CURRENT_STORAGE_VERSION = 1;
 export const NON_XUID_STORAGE = [
     "version",
     "serverClaims",
+    "serverGroups",
 ]
 
 const playerNameMap: Map<string, string> = new Map();
@@ -206,13 +207,9 @@ function loadData() {
         data = updateStorageFromVersion(data, data.version);
     }
 
-    const xuids = Object.keys(data);
+    const xuids = getStoredXuidsFromStorage(data);
     for (const xuid of xuids) {
         const playerData = data[xuid];
-
-        if (NON_XUID_STORAGE.includes(xuid)) {
-            continue; // Not player storage
-        }
 
         for (const claimData of playerData.claims) {
             const claim = Claim.fromData(claimData);
@@ -305,4 +302,18 @@ function updateStorageFromVersion(storage: any, version: number) {
     writeFileSync(STORAGE_PATH, JSON.stringify(newStorage, null, 4));
 
     return newStorage;
+}
+
+export function getStoredXuidsFromStorage(storage: any) {
+    const retXuids: string[] = [];
+
+    for (const key in storage) {
+        if (NON_XUID_STORAGE.includes(key)) {
+            continue;
+        }
+
+        retXuids.push(key);
+    }
+
+    return retXuids;
 }
