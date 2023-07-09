@@ -109,8 +109,12 @@ export function registerConfigOverride(permissionKey: string, forcedValue: any) 
 
     let defaultConfig: any = createDefaultConfig();
     let lastCheckedValue: any = undefined;
-    for (const key of keyChain) {
-        lastCheckedValue = defaultConfig[key];
+    for (const [index, key] of keyChain.entries()) {
+        if (index === 0) {
+            lastCheckedValue = defaultConfig[key];
+        } else {
+            lastCheckedValue = lastCheckedValue[key];
+        }
 
         if (lastCheckedValue === undefined) {
             return ConfigOverrideResult.InvalidKey;
@@ -154,18 +158,21 @@ events.serverLoading.on(() => {
 })
 
 function setValueAtPermissionKey(permissionKey: string, value: string) {
-    const defaultConfig: any = createDefaultConfig();
     let lastReadValue: any = undefined;
     const keyPath = permissionKey.split(".");
     for (const [index, key] of keyPath.entries()) {
-        lastReadValue = defaultConfig[key];
+        if (index === 0) {
+            lastReadValue = (CONFIG as any)[key];
+        } else {
+            lastReadValue = lastReadValue[key];
+        }
 
         if (lastReadValue === undefined) {
             throw `INVALID KEY AT ${key}`
         }
 
         if (index === (keyPath.length - 1)) {
-            defaultConfig[key] = value;
+            (CONFIG as any)[key] = value;
         }
     }
 }
