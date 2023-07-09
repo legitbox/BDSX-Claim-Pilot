@@ -157,24 +157,28 @@ events.serverLoading.on(() => {
     }
 })
 
-function setValueAtPermissionKey(permissionKey: string, value: string) {
-    let lastReadValue: any = undefined;
-    const keyPath = permissionKey.split(".");
-    for (const [index, key] of keyPath.entries()) {
-        if (index === 0) {
-            lastReadValue = (CONFIG as any)[key];
-        } else {
-            lastReadValue = lastReadValue[key];
-        }
+function setValueAtPermissionKey(permissionKey: string, value: any) {
+    const keys = permissionKey.split(".");
+    CONFIG = setValueInConfig(CONFIG, keys, value);
+}
 
-        if (lastReadValue === undefined) {
-            throw `INVALID KEY AT ${key}`
-        }
+function setValueInConfig(config: any, keys: string[], value: any): Config {
+    const key = keys.shift();
 
-        if (index === (keyPath.length - 1)) {
-            (CONFIG as any)[key] = value;
-        }
+    if (!key) {
+        // Reached the final key, set the value
+        return value;
     }
+
+    // Check if the key exists in the config
+    if (key in config) {
+        // If the current key exists, recursively traverse deeper into the object
+        config[key] = setValueInConfig(config[key], keys, value);
+    } else {
+        throw new Error(`Invalid key: ${key}`);
+    }
+
+    return config;
 }
 
 events.serverOpen.on(() => {
