@@ -7,6 +7,7 @@ import './events/sneakToggleEvent';
 import './events/enteredLeftClaimEvent';
 import './events/playtimeUpdateEvent';
 import './events/claimCreatedEvent';
+import './events/groupCreatedEvent';
 
 import './claims/claim';
 import './claims/claimPermissionManager';

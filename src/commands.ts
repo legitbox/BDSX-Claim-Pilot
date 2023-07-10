@@ -35,6 +35,8 @@ import {ServerPlayer} from "bdsx/bds/player";
 import {getName, saveData} from "./Storage/storageManager";
 import {createDefaultClaimPermission} from "./claims/claimPermissionManager";
 import isDecayed = decay.isDecayed;
+import {fireEvent} from "./events/eventStorage";
+import {GroupCreatedEvent} from "./events/groupCreatedEvent";
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
 let moderatorClaimCommand: CustomCommandFactory | undefined = undefined;
@@ -315,7 +317,7 @@ events.serverOpen.on(() => {
                         output.error("Command need to be ran by a player!");
                         return;
                     }
-                    
+
                     openClaimMergeOptionsForm(player);
                 }, {
                     options: command.enum('options.group', 'group'),
@@ -940,7 +942,7 @@ async function sendClaimNameInputForm(player: ServerPlayer): Promise<string> {
     if (trimmedInput === "") {
         throw SendClaimNameFormFailReason.BlankName
     }
-    
+
     claim.setName(trimmedInput);
 
     player.sendMessage(`The ${namingType} has been renamed to ${trimmedInput}`);
@@ -1016,7 +1018,17 @@ function openClaimMergeOptionsForm(player: ServerPlayer) {
                     [],
                     {},
                 );
-                
+
+                // Firing claim event
+                const shouldRegister = fireEvent(GroupCreatedEvent.ID, {
+                    group,
+                    ownerXuid
+                })
+
+                if (!shouldRegister) {
+                    break;
+                }
+
                 registerClaimGroup(group);
 
                 player.sendMessage(`§aCreated a group with the name §e${groupName}§a!`);
