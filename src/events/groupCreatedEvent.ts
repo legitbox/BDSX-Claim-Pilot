@@ -14,7 +14,7 @@ export namespace GroupCreatedEvent {
         let shouldExecute = true;
         for (const callback of callbacks) {
             const res = callback(data.group, data.ownerXuid);
-            if (!res) {
+            if (res !== undefined && !res) {
                 shouldExecute = false;
             }
         }
