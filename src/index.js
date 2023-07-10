@@ -8,6 +8,7 @@ require("./events/sneakToggleEvent");
 require("./events/enteredLeftClaimEvent");
 require("./events/playtimeUpdateEvent");
 require("./events/claimCreatedEvent");
+require("./events/groupCreatedEvent");
 require("./claims/claim");
 require("./claims/claimPermissionManager");
 require("./claims/claimDetection");
@@ -19,4 +20,4 @@ require("./claims/claimsBlockPayout");
 require("./claims/claimExplosionProtection");
 require("./playerPlaytime/playtime");
 require("./commands");
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJpbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLCtCQUE2QjtBQUM3QixvQ0FBa0M7QUFFbEMsaUNBQStCO0FBQy9CLGlDQUErQjtBQUMvQixxQ0FBbUM7QUFDbkMsMENBQXdDO0FBQ3hDLHdDQUFzQztBQUN0QyxzQ0FBb0M7QUFFcEMsMEJBQXdCO0FBQ3hCLDJDQUF5QztBQUN6QyxtQ0FBaUM7QUFDakMsb0NBQWtDO0FBQ2xDLHFDQUFtQztBQUNuQyx1Q0FBcUM7QUFDckMsaUNBQStCO0FBQy9CLHNDQUFvQztBQUNwQyw2Q0FBMkM7QUFFM0MscUNBQW1DO0FBRW5DLHNCQUFvQiJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJpbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBLCtCQUE2QjtBQUM3QixvQ0FBa0M7QUFFbEMsaUNBQStCO0FBQy9CLGlDQUErQjtBQUMvQixxQ0FBbUM7QUFDbkMsMENBQXdDO0FBQ3hDLHdDQUFzQztBQUN0QyxzQ0FBb0M7QUFDcEMsc0NBQW9DO0FBRXBDLDBCQUF3QjtBQUN4QiwyQ0FBeUM7QUFDekMsbUNBQWlDO0FBQ2pDLG9DQUFrQztBQUNsQyxxQ0FBbUM7QUFDbkMsdUNBQXFDO0FBQ3JDLGlDQUErQjtBQUMvQixzQ0FBb0M7QUFDcEMsNkNBQTJDO0FBRTNDLHFDQUFtQztBQUVuQyxzQkFBb0IifQ==
