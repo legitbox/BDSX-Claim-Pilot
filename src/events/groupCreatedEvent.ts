@@ -10,7 +10,7 @@ export namespace GroupCreatedEvent {
         registerEvent(ID, callback);
     }
 
-    export function handleFireCallbacks(callbacks: CALLBACK[], data: any) {
+    export function handleFireCallbacks(callbacks: CALLBACK[], data: any): boolean {
         let shouldExecute = true;
         for (const callback of callbacks) {
             const res = callback(data.group, data.ownerXuid);

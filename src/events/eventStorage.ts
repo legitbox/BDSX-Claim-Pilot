@@ -15,11 +15,27 @@ export function registerEventType(namespace: any) {
 }
 
 const registeredEvents: Map<string, EventInfo> = new Map();
+const cachedCallbacks: Map<string, any[]> = new Map();
 
 export function registerEvent(id: string, callback: any) {
     let info = registeredEvents.get(id);
+    let cache = cachedCallbacks.get(id);
     if (info === undefined) {
-        throw `ERROR: Event Type ${id} doesn't exist!`;
+        // Event Type hasn't been registered yet! Caching it...
+        if (cache === undefined) {
+            cache = [];
+        }
+
+        cache.push(callback);
+
+        cachedCallbacks.set(id, cache);
+        return;
+    }
+
+    if (cache !== undefined) {
+        for (const callback in cache) {
+            info.registeredCallbacks.push(callback);
+        }
     }
 
     info.registeredCallbacks.push(callback);
@@ -31,13 +47,9 @@ export function fireEvent(id: string, data: any): boolean {
         return true;
     }
 
-    const res = info.namespace.handleFireCallbacks(info.registeredCallbacks, data);
+    const res: boolean | undefined = info.namespace.handleFireCallbacks(info.registeredCallbacks, data);
     if (info.namespace.CANCELABLE) {
-        if (res !== undefined) {
-            return res;
-        } else {
-            return true;
-        }
+        return res!;
     } else {
         return true;
     }
