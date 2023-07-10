@@ -11,6 +11,7 @@ import {triggerWandUse} from "../claims/claimBuilder";
 export namespace WandUseEvent {
     export const ID = 'WandUseEvent';
     export const CANCELABLE = true;
+    export const ASYNC_ALLOWED = false;
     export type CALLBACK = (pos: BlockPos, player: ServerPlayer, item: ItemStack) => boolean;
 
     export function register(callback: CALLBACK) {
@@ -21,7 +22,8 @@ export namespace WandUseEvent {
         let shouldExecute = true;
         for (const callback of callbacks) {
             const res = callback(data.pos, data.player, data.item);
-            if (res) {
+
+            if (res !== undefined && !res) {
                 shouldExecute = false;
             }
         }
@@ -66,7 +68,7 @@ events.itemUseOnBlock.on((ev) => {
     })
 
     if (res) {
-        triggerWandUse(bPos, player);
+        triggerWandUse(bPos, player).then();
     }
 
     return CANCEL;

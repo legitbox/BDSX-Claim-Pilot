@@ -41,16 +41,27 @@ export function registerEvent(id: string, callback: any) {
     info.registeredCallbacks.push(callback);
 }
 
-export function fireEvent(id: string, data: any): boolean {
+export function fireEvent(id: string, data: any): Promise<boolean> | boolean {
     const info = registeredEvents.get(id);
     if (info === undefined) {
         return true;
     }
 
-    const res: boolean | undefined = info.namespace.handleFireCallbacks(info.registeredCallbacks, data);
-    if (info.namespace.CANCELABLE) {
-        return res!;
+    if (info.namespace.ASYNC_ALLOWED) {
+        return new Promise(async (resolve) => {
+            let res: boolean | undefined = await info.namespace.handleFireCallbacks(info.registeredCallbacks, data);
+            if (info.namespace.CANCELABLE) {
+                resolve(res!);
+            } else {
+                resolve(true);
+            }
+        })
     } else {
-        return true;
+        const res: boolean | undefined = info.namespace.handleFireCallbacks(info.registeredCallbacks, data);
+        if (info.namespace.CANCELABLE) {
+            return res!;
+        } else {
+            return true;
+        }
     }
 }

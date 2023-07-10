@@ -7,14 +7,13 @@ import isDecayed = decay.isDecayed;
 import {Claim, getClaimAtPos, getClaimFromId} from "./claim";
 import {fireEvent} from "../events/eventStorage";
 import {EnteredLeftClaimEvent} from "../events/enteredLeftClaimEvent";
-import {ServerPlayer} from "bdsx/bds/player";
 
 const currentClaims: Map<string, string> = new Map(); // Key: xuid, Value: ClaimID
 
 let claimCheckInterval: Timeout | undefined = undefined;
 
 events.serverOpen.on(() => {
-    claimCheckInterval = setInterval(() => {
+    claimCheckInterval = setInterval(async () => {
         if (isDecayed(bedrockServer.level)) {
             clearInterval(claimCheckInterval);
             return;
@@ -43,7 +42,10 @@ events.serverOpen.on(() => {
             }
 
             if (shouldFire) {
-                fireEvent(EnteredLeftClaimEvent.ID, {player, claim});
+                const eventRes = fireEvent(EnteredLeftClaimEvent.ID, {playerXuid: xuid, claim});
+                if (typeof eventRes !== "boolean") {
+                    await eventRes;
+                }
             }
         }
     }, CONFIG.claimUpdateRate)
@@ -51,7 +53,16 @@ events.serverOpen.on(() => {
 
 EnteredLeftClaimEvent.register(onClaimInteraction);
 
-function onClaimInteraction(player: ServerPlayer, claim: Claim | undefined) {
+function onClaimInteraction(playerXuid: string, claim: Claim | undefined) {
+    if (isDecayed(bedrockServer.level)) {
+        return;
+    }
+
+    const player = bedrockServer.level.getPlayerByXuid(playerXuid);
+    if (player === null) {
+        return;
+    }
+
     if (claim === undefined) {
         player.sendMessage('§eEntered §aWild§e!');
         return;

@@ -16,16 +16,16 @@ import {
 } from "./claims/claimBlocksManager";
 import {
     Claim,
-    ClaimGroup,
+    ClaimGroup, createGroup,
     deleteClaim, deleteClaimGroup,
     getClaimAtPos,
     getOwnedClaims,
     getOwnedGroups,
-    playerHasPerms, registerClaimGroup
+    playerHasPerms
 } from "./claims/claim";
 import {CommandPermissionLevel, PlayerCommandSelector} from "bdsx/bds/command";
 import {bool_t, CxxString, int32_t} from "bdsx/nativetype";
-import {createWand, generateID} from "./utils";
+import {createWand} from "./utils";
 import {sendPlaytimeFormForPlayer} from "./playerPlaytime/playtime";
 import {bedrockServer} from "bdsx/launcher";
 import {CustomForm, FormButton, FormInput, FormLabel, FormToggle, ModalForm, SimpleForm} from "bdsx/bds/form";
@@ -35,8 +35,6 @@ import {ServerPlayer} from "bdsx/bds/player";
 import {getName, saveData} from "./Storage/storageManager";
 import {createDefaultClaimPermission} from "./claims/claimPermissionManager";
 import isDecayed = decay.isDecayed;
-import {fireEvent} from "./events/eventStorage";
-import {GroupCreatedEvent} from "./events/groupCreatedEvent";
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
 let moderatorClaimCommand: CustomCommandFactory | undefined = undefined;
@@ -987,14 +985,7 @@ function openClaimMergeOptionsForm(player: ServerPlayer) {
                 sendEditGroupFrom(player, selectedGroup, isServer);
                 break;
             case 1: // Create new Group
-                const nonGroupedClaims = getClaimsNotInGroup(ownerXuid);
-
-                if (nonGroupedClaims.length === 0) {
-                    player.sendMessage("There are no claims to create a group for!");
-                    return;
-                }
-
-                let groupName;
+                let groupName: string;
                 try {
                     groupName = await sendTextInputForm(player, "Group Name Setter", "Enter the name for the group", `${player.getName()}'s Group`);
                 } catch {
@@ -1011,27 +1002,10 @@ function openClaimMergeOptionsForm(player: ServerPlayer) {
                     }
                 }
 
-                const group = new ClaimGroup(
-                    generateID(16),
-                    groupName,
-                    ownerXuid,
-                    [],
-                    {},
-                );
+                createGroup(groupName, ownerXuid).then(() => {
+                    player.sendMessage(`§aCreated a group with the name §e${groupName}§a!`);
+                });
 
-                // Firing claim event
-                const shouldRegister = fireEvent(GroupCreatedEvent.ID, {
-                    group,
-                    ownerXuid
-                })
-
-                if (!shouldRegister) {
-                    break;
-                }
-
-                registerClaimGroup(group);
-
-                player.sendMessage(`§aCreated a group with the name §e${groupName}§a!`);
                 break;
             case 2: // Delete group
                 let isRemovingGroup = true;
@@ -1132,28 +1106,13 @@ function sendEditGroupFrom(player: ServerPlayer, group: ClaimGroup, isServer: bo
                         continue;
                     }
 
-                    if (group.claimIds.includes(claim.id)) {
-                        player.sendMessage("§cThat claim is already in the group!");
-                        return;
-                    }
-
-                    group.claimIds.push(claim.id);
+                    group.addClaim(claim);
 
                     player.sendMessage(`§e${claim.getName(true)}§a added to the group!`);
 
                     if (allNonGroupedClaims.length === 1) {
                         isAddingAnother = false;
                         continue;
-                    }
-
-                    const existingMemberData = group.members;
-                    const claimMemberData = claim.getMemberObject(true);
-                    const claimMemberXuids = claim.getMemberXuids();
-
-                    for (const memberXuid of claimMemberXuids) {
-                        if (existingMemberData[memberXuid] === undefined) {
-                            existingMemberData[memberXuid] = claimMemberData[memberXuid];
-                        }
                     }
 
                     try {

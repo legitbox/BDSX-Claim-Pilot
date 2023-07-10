@@ -98,7 +98,7 @@ export class ClaimBuilder {
         return this;
     }
 
-    build(isServer: boolean = false) {
+    async build(isServer: boolean = false) {
         if (this.pos2 === undefined) {
             return ClaimBuildFailReason.NoPos2
         } else if (this.name === undefined) {
@@ -150,12 +150,12 @@ export class ClaimBuilder {
         if (isServer) {
             return registerNewServerClaim(this.name, this.pos1, this.pos2, this.dimensionId);
         } else {
-            return registerNewClaim(this.ownerXuid, this.name, this.pos1, this.pos2, this.dimensionId);
+            return await registerNewClaim(this.ownerXuid, this.name, this.pos1, this.pos2, this.dimensionId);
         }
     }
 }
 
-export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
+export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
     const dimensionId = player.getDimensionId();
     const overlappedClaim = getClaimAtPos(pos, dimensionId);
 
@@ -218,7 +218,7 @@ export function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
         return;
     } else {
         builder.setPos2(pos);
-        const claim = builder.build(isServerClaim);
+        const claim = await builder.build(isServerClaim);
 
         if (!(claim instanceof Claim)) {
             switch (claim) {

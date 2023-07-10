@@ -1,19 +1,22 @@
 import {Claim} from "../claims/claim";
-import {ServerPlayer} from "bdsx/bds/player";
 import {registerEvent, registerEventType} from "./eventStorage";
 
 export namespace EnteredLeftClaimEvent {
     export const ID = 'EnteredLeftClaimEvent';
     export const CANCELABLE = false;
-    export type CALLBACK = (player: ServerPlayer, claim: Claim | undefined) => void;
+    export const ASYNC_ALLOWED = true;
+    export type CALLBACK = (playerXuid: string, claim: Claim | undefined) => Promise<void> | void;
 
     export function register(callback: CALLBACK) {
         registerEvent(ID, callback);
     }
 
-    export function handleFireCallbacks(callbacks: CALLBACK[], data: any) {
+    export async function handleFireCallbacks(callbacks: CALLBACK[], data: any) {
         for (const callback of callbacks) {
-            callback(data.player, data.claim);
+            const callbackResult = callback(data.playerXuid, data.claim);
+            if (callbackResult instanceof Promise) {
+                await callbackResult;
+            }
         }
     }
 }

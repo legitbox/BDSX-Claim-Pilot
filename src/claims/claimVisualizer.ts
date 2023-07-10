@@ -1,4 +1,3 @@
-import {ServerPlayer} from "bdsx/bds/player";
 import {SneakToggleEvent} from "../events/sneakToggleEvent";
 import {deleteItemFromArray, generateBox, getPlayersFromXuids, isWand} from "../utils";
 import {events} from "bdsx/event";
@@ -16,7 +15,16 @@ let activeViewList: string[] = [];
 
 SneakToggleEvent.register(onSneakToggle);
 
-function onSneakToggle(player: ServerPlayer) {
+function onSneakToggle(playerXuid: string) {
+    if (isDecayed(bedrockServer.level)) {
+        return;
+    }
+
+    const player = bedrockServer.level.getPlayerByXuid(playerXuid);
+    if (player === null) {
+        return;
+    }
+
     const heldItem = player.getCarriedItem();
     if (!isWand(heldItem)) {
         return;

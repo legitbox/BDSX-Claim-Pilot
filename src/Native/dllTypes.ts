@@ -5,7 +5,7 @@ import {Vec3} from "bdsx/bds/blockpos";
 import {CxxVector} from "bdsx/cxxvector";
 import {Claim} from "../claims/claim";
 import {CONFIG} from "../configManager";
-import {getStoredXuidsFromStorage, NON_XUID_STORAGE} from "../Storage/storageManager";
+import {getStoredXuidsFromStorage} from "../Storage/storageManager";
 
 @nativeClass()
 export class NativeClaimObject extends NativeClass {

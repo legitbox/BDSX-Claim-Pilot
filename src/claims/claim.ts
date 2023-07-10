@@ -7,6 +7,7 @@ import {saveData} from "../Storage/storageManager";
 import {freeBlocksForPlayer} from "./claimBlocksManager";
 import {fireEvent} from "../events/eventStorage";
 import {ClaimPermission, updatePermissions} from "./claimPermissionManager";
+import {GroupCreatedEvent} from "../events/groupCreatedEvent";
 
 const claimMap: Map<string, Claim[]> = new Map(); // Key: OwnerXUID, value: Owned claims
 const claimGroups: Map<string, ClaimGroup[]> = new Map();
@@ -64,6 +65,28 @@ export class ClaimGroup {
         })
 
         return resClaims;
+    }
+
+    addClaim(claim: Claim, mergePermissions: boolean = true): boolean {
+        if (this.claimIds.includes(claim.id)) {
+            return false;
+        }
+
+        this.claimIds.push(claim.id);
+
+        if (mergePermissions) {
+            const existingMemberData = this.members;
+            const claimMemberData = claim.getMemberObject(true);
+            const claimMemberXuids = claim.getMemberXuids();
+
+            for (const memberXuid of claimMemberXuids) {
+                if (existingMemberData[memberXuid] === undefined) {
+                    existingMemberData[memberXuid] = claimMemberData[memberXuid];
+                }
+            }
+        }
+
+        return true;
     }
 }
 
@@ -233,6 +256,89 @@ export function deleteClaimGroup(group: ClaimGroup) {
     claimGroups.set(group.ownerXuid, ownersGroups);
 }
 
+export interface CreateGroupOptions {
+    registerGroup?: boolean,
+    triggerEvent?: boolean,
+    initialClaims?: Claim[],
+}
+
+function fillEmptyGroupOptions(options: CreateGroupOptions | undefined): CreateGroupOptions {
+    if (options === undefined) {
+        options = {};
+    }
+
+    if (options.registerGroup === undefined) {
+        options.registerGroup = true;
+    }
+
+    if (options.triggerEvent === undefined) {
+        options.triggerEvent = true;
+    }
+
+    if (options.initialClaims === undefined) {
+        options.initialClaims = [];
+    }
+
+    return options;
+}
+
+export enum CreateGroupRejectReason {
+    Cancelled,
+    BugWithClaimPilot,
+}
+
+export async function createGroup(groupName: string, ownerXuid: string, options?: CreateGroupOptions): Promise<ClaimGroup> {
+    options = fillEmptyGroupOptions(options);
+
+    if (options.initialClaims === undefined) {
+        throw CreateGroupRejectReason.BugWithClaimPilot;
+    }
+
+    if (options.registerGroup === undefined) {
+        throw CreateGroupRejectReason.BugWithClaimPilot;
+    }
+
+    if (options.triggerEvent === undefined) {
+        throw CreateGroupRejectReason.BugWithClaimPilot;
+    }
+
+    let existingGroupIds = getAllGroupIds();
+    let id = generateID(16);
+    while (existingGroupIds.includes(id)) {
+        id = generateID(16);
+    }
+
+    const group = new ClaimGroup(id, groupName, ownerXuid, [], {});
+
+    for (const claim of options.initialClaims) {
+        group.addClaim(claim);
+    }
+
+    if (options.triggerEvent) {
+        const eventRes = fireEvent(GroupCreatedEvent.ID, {
+            group,
+            ownerXuid,
+        })
+
+        let shouldFire;
+        if (typeof eventRes === "boolean") {
+            shouldFire = eventRes;
+        } else {
+            shouldFire = await eventRes;
+        }
+
+        if (!shouldFire) {
+            throw CreateGroupRejectReason.Cancelled;
+        }
+    }
+
+    if (options.registerGroup) {
+        registerClaimGroup(group);
+    }
+
+    return group;
+}
+
 export function registerClaimGroup(group: ClaimGroup) {
     let ownedGroups = claimGroups.get(group.ownerXuid);
     if (ownedGroups === undefined) {
@@ -294,7 +400,7 @@ export function registerNewServerClaim(name: string, pos1: SerializableVec3, pos
     return claim;
 }
 
-export function registerNewClaim(ownerXuid: string, name: string, pos1: SerializableVec3, pos2: SerializableVec3, dimensionId: DimensionId) {
+export async function registerNewClaim(ownerXuid: string, name: string, pos1: SerializableVec3, pos2: SerializableVec3, dimensionId: DimensionId) {
     // Creating direction consistent corners
     const {cornerOne, cornerTwo} = organizeCorners(pos1, pos2);
 
@@ -302,7 +408,13 @@ export function registerNewClaim(ownerXuid: string, name: string, pos1: Serializ
 
     const claim = new Claim(ownerXuid, name, id, cornerOne, cornerTwo, dimensionId);
 
-    const res = fireEvent('ClaimCreationEvent', {ownerXuid, claim});
+    const eventRes = fireEvent('ClaimCreationEvent', {claim, ownerXuid});
+    let res;
+    if (typeof eventRes === "boolean") {
+        res = eventRes;
+    } else {
+        res = await eventRes;
+    }
 
     if (!res) {
         // Claim creation canceled, event should have handled messaging the player. Returning unidentified to inform previous things claim wasn't made
@@ -320,6 +432,26 @@ export function registerNewClaim(ownerXuid: string, name: string, pos1: Serializ
     saveData();
 
     return claim;
+}
+
+export function getAllGroups() {
+    let retGroups: ClaimGroup[] = [];
+    for (const playerGroups of claimGroups.values()) {
+        retGroups = retGroups.concat(playerGroups);
+    }
+
+    return retGroups;
+}
+
+export function getAllGroupIds() {
+    const groups = getAllGroups();
+
+    const groupIds: string[] = [];
+    for (const group of groups) {
+        groupIds.push(group.groupId);
+    }
+
+    return groupIds;
 }
 
 export function getAllClaims() {

@@ -89,28 +89,31 @@ export function getPlaytimeRewardInfo(xuid: string) {
 }
 
 function getAndUpdateCurrentPlaytime(xuid: string, isOnline: boolean, shouldSave: boolean = true) {
-    const info = playerTimeInfoMap.get(xuid);
-    if (info === undefined) {
+    const playtimeInfo = playerTimeInfoMap.get(xuid);
+    if (playtimeInfo === undefined) {
         playerTimeInfoMap.set(xuid, new PlayerTimeInfo(0, 0, isOnline));
 
         return 0;
     }
 
-    info.totalTime = getTotalTime(xuid);
+    playtimeInfo.totalTime = getTotalTime(xuid);
 
     if (shouldSave) {
         saveData();
     }
 
-    if (info.isOnline) {
-        info.lastCheckTime = Date.now();
+    if (playtimeInfo.isOnline) {
+        playtimeInfo.lastCheckTime = Date.now();
     } else {
-        info.lastCheckTime = undefined;
+        playtimeInfo.lastCheckTime = undefined;
     }
 
-    fireEvent(PlaytimeUpdateEvent.ID, {xuid: xuid, playtimeInfo: info});
+    const eventRes = fireEvent(PlaytimeUpdateEvent.ID, {xuid, playtimeInfo});
+    if (typeof eventRes !== "boolean") {
+        eventRes.then();
+    }
 
-    return info.totalTime;
+    return playtimeInfo.totalTime;
 }
 
 export function getTotalTime(xuid: string) {

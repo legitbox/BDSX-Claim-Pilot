@@ -1,27 +1,33 @@
 import {fireEvent, registerEvent, registerEventType} from "./eventStorage";
-import {ServerPlayer} from "bdsx/bds/player";
 import {events} from "bdsx/event";
 
 export namespace SneakToggleEvent {
     export const ID = 'SneakToggleEvent';
     export const CANCELABLE = false;
-    export type CALLBACK = (player: ServerPlayer) => void;
+    export const ASYNC_ALLOWED = true;
+    export type CALLBACK = (playerXuid: string) => Promise<void> | void;
 
     export function register(callback: CALLBACK) {
         registerEvent(SneakToggleEvent.ID, callback);
     }
 
-    export function handleFireCallbacks(callbacks: CALLBACK[], data: any) {
+    export async function handleFireCallbacks(callbacks: CALLBACK[], data: any) {
         for (const callback of callbacks) {
-            callback(data.player);
+            const callbackResult = callback(data.playerXuid);
+            if (callbackResult instanceof Promise) {
+                await callbackResult;
+            }
         }
     }
 }
 
 registerEventType(SneakToggleEvent);
 
-events.entitySneak.on((ev) => {
+events.entitySneak.on(async (ev) => {
     if (ev.entity.isPlayer() && !ev.isSneaking) {
-        fireEvent(SneakToggleEvent.ID, {player: ev.entity});
+        const eventRes = fireEvent(SneakToggleEvent.ID, {playerXuid: ev.entity.getXuid()});
+        if (typeof eventRes !== "boolean") {
+            await eventRes;
+        }
     }
 })
