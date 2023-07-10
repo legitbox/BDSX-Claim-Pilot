@@ -7,6 +7,7 @@ import {VectorXYZ} from "bdsx/common";
 import {BoxCorners, getNumOfBlocksInBox, organizeCorners} from "../utils";
 import {addUsedBlocksToPlayer, getPlayerFreeBlocks} from "./claimBlocksManager";
 import {CONFIG} from "../configManager";
+import {getExtraData} from "../events/claimCreatedEvent";
 
 export enum ClaimBuildFailReason {
     NoPos2,
@@ -259,7 +260,11 @@ export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
             const {cornerOne, cornerTwo} = organizeCorners(builder.pos1, builder.pos2!);
             const blockCost = getNumOfBlocksInBox(cornerOne, cornerTwo);
 
-            player.sendMessage(`§aClaim created! You used §e${blockCost}§a blocks, you have §e${getPlayerFreeBlocks(playerXuid)}§a blocks remaining!`);
+            const extraData = getExtraData(claim.id);
+
+            if (extraData.shouldSendDefaultMessage) {
+                player.sendMessage(`§aClaim created! You used §e${blockCost}§a blocks, you have §e${getPlayerFreeBlocks(playerXuid)}§a blocks remaining!`);
+            }
 
             builders.delete(playerXuid);
         }
