@@ -33,7 +33,11 @@ export function fireEvent(id: string, data: any): boolean {
 
     const res = info.namespace.handleFireCallbacks(info.registeredCallbacks, data);
     if (info.namespace.CANCELABLE) {
-        return res;
+        if (res !== undefined) {
+            return res;
+        } else {
+            return true;
+        }
     } else {
         return true;
     }
