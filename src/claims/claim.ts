@@ -234,6 +234,17 @@ export class Claim {
     }
 }
 
+export function getGroupById(groupId: string) {
+    const allGroups = getAllGroups();
+    for (const group of allGroups) {
+        if (group.groupId === groupId) {
+            return group;
+        }
+    }
+
+    return undefined;
+}
+
 export function getOwnedGroups(playerXuid: string) {
     let groups = claimGroups.get(playerXuid);
     if (groups === undefined) {

@@ -49,7 +49,7 @@ function createDefaultClaimCreateExtraData(): ClaimCreationExtraData {
 }
 
 // A bit of an iffy system if multiple plugins want to do things for this.
-// The latest update is the one that gets used so it's very unreliable as to when an extra data will be chosen and from where.
+// The latest update is the one that gets used, so it's very unreliable as to when an extra data will be chosen and from where.
 // Though it's not likely that a plugin wrapping the claim creation system will be compatible with another doing the same.
 // If something gets reported I might try and figure out some priority system
 const claimCreationExtraData: Map<string, ClaimCreationExtraData> = new Map();
