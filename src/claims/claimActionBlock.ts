@@ -11,6 +11,8 @@ import {Actor} from "bdsx/bds/actor";
 import {ItemStack} from "bdsx/bds/inventory";
 import {nativeClass, NativeClass, nativeField} from "bdsx/nativeclass";
 import {isPointInBox} from "../utils";
+import {SharedPtr} from "bdsx/bds/sharedptr";
+import {VoidPointer} from "bdsx/core";
 
 events.blockDestroy.on((ev) => {
     const xuid = ev.player.getXuid();
@@ -29,6 +31,7 @@ events.blockDestroy.on((ev) => {
 
 events.blockPlace.on((ev) => {
     const xuid = ev.player.getXuid();
+    ev.player.sendMessage("Placed!");
     const claim = getClaimAtPos(ev.blockPos, ev.player.getDimensionId());
 
     if (claim === undefined) {
@@ -66,8 +69,6 @@ events.itemUseOnBlock.on((ev) => {
         return ;
     }
 
-
-
     const xuid = ev.actor.getXuid();
     const claim = getClaimAtPos(ev, ev.actor.getDimensionId());
 
@@ -77,7 +78,6 @@ events.itemUseOnBlock.on((ev) => {
 
     const claimMembers = claim.getMemberXuids();
     if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        ev.actor.sendMessage('§cYou dont have permission to use items in this claim!');
         return CANCEL;
     }
 })
@@ -96,19 +96,6 @@ events.playerAttack.on((ev) => {
         return CANCEL;
     }
 })
-
-events.blockInteractedWith.on((ev) => {
-    const claim = getClaimAtPos(ev.blockPos, ev.player.getDimensionId());
-    if (claim === undefined) {
-        return;
-    }
-
-    const xuid = ev.player.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        return CANCEL;
-    }
-});
 
 events.playerInteract.on((ev) => {
     const claim = getClaimAtPos(ev.victim.getPosition(), ev.victim.getDimensionId());
@@ -150,7 +137,6 @@ function handleItemUseClaimCheck(player: ServerPlayer) {
 
     const claimMembers = claim.getMemberXuids();
     if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        player.sendMessage('§cYou dont have permission to use items in this claim!');
         return CANCEL;
     }
 }
@@ -345,4 +331,3 @@ function onRequestCanFlow(this: Block, region: BlockSource, target: BlockPos, so
         return false;
     }
 }
-

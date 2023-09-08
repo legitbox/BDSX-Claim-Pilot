@@ -562,6 +562,10 @@ export function getClaimFromId(id: string) {
 }
 
 export function playerHasPerms(claim: Claim, playerXuid: string, permission: string) {
+    if (claim.owner === playerXuid) {
+        return true;
+    }
+
     const memberPermData = claim.getMemberPermissions(playerXuid);
     if (memberPermData === undefined) { // Not a member
         return false;

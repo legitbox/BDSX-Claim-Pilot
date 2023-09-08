@@ -5,10 +5,12 @@ export type ClaimPermission = Map<string, boolean>;
 export class ClaimPermissionData {
     permissionName: string;
     defaultValue: boolean;
+    optionName: string;
 
-    constructor(permissionName: string, defaultValue: boolean) {
+    constructor(permissionName: string, defaultValue: boolean, optionName: string) {
         this.permissionName = permissionName;
         this.defaultValue = defaultValue;
+        this.optionName = optionName;
     }
 }
 
@@ -22,8 +24,8 @@ export function createDefaultClaimPermission(): ClaimPermission {
     return permissions;
 }
 
-export function registerPermission(permissionName: string, defaultValue: boolean) {
-    const permData = new ClaimPermissionData(permissionName, defaultValue);
+export function registerPermission(permissionName: string, defaultValue: boolean, optionName: string) {
+    const permData = new ClaimPermissionData(permissionName, defaultValue, optionName);
 
     ClaimPermissionDatas.set(permissionName, permData);
 }
@@ -46,6 +48,10 @@ export function updatePermissions(permissions: ClaimPermission) {
     }
 }
 
+export function getClaimPermissionDatas(): ClaimPermissionData[] {
+    return Array.from(ClaimPermissionDatas.values());
+}
+
 // Area for registering built in permissions
-registerPermission("edit_members", false);
-registerPermission("edit_name", false);
+registerPermission("edit_members", false, "Can Edit Members");
+registerPermission("edit_name", false, "Can Edit Claim Name");

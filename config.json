@@ -46,7 +46,8 @@
                 "addPlayerCommandEnabled": true,
                 "removePlayerCommandEnabled": true,
                 "setClaimNameCommandEnabled": true,
-                "managedMergedClaimsCommandEnabled": true
+                "managedMergedClaimsCommandEnabled": true,
+                "editClaimCommandEnabled": true
             }
         },
         "fclaim": {

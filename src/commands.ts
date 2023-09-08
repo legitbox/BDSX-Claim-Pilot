@@ -33,7 +33,10 @@ import {decay} from "bdsx/decay";
 import {getCurrentClaim} from "./claims/claimDetection";
 import {ServerPlayer} from "bdsx/bds/player";
 import {getName, saveData} from "./Storage/storageManager";
-import {createDefaultClaimPermission} from "./claims/claimPermissionManager";
+import {
+    createDefaultClaimPermission,
+    getClaimPermissionDatas
+} from "./claims/claimPermissionManager";
 import isDecayed = decay.isDecayed;
 
 let claimCommand: CustomCommandFactory | undefined = undefined;
@@ -319,6 +322,27 @@ events.serverOpen.on(() => {
                     openClaimMergeOptionsForm(player);
                 }, {
                     options: command.enum('options.group', 'group'),
+                })
+        }
+
+        if (CONFIG.commandOptions.claim.subcommandOptions.editClaimCommandEnabled) {
+            claimCommand
+                .overload((_p, origin, output) => {
+                    const player = origin.getEntity();
+                    if (player === null || !player.isPlayer()) {
+                        output.error("Command needs to be ran by a player!");
+                        return;
+                    }
+
+                    const claim = getCurrentClaim(player.getXuid());
+                    if (claim === undefined) {
+                        output.error("You are not in a claim!");
+                        return;
+                    }
+
+                    sendEditClaimForm(player, claim);
+                }, {
+                    options: command.enum('options.edit', 'edit')
                 })
         }
     }
@@ -1229,8 +1253,25 @@ async function sendTextInputForm(player: ServerPlayer, title: string, descriptio
 }
 
 function sendEditClaimForm(player: ServerPlayer, claim: Claim) {
+    const buttons: FormButton[] = [];
+
+    const xuid = player.getXuid();
+    if (playerHasPerms(claim, xuid, "edit_members")) {
+        buttons.push(new FormButton("Edit Members"));
+    }
+
+    if (playerHasPerms(claim, xuid, "edit_name")) {
+        buttons.push(new FormButton("Edit Name"));
+    }
+
+    if (buttons.length === 0) {
+        player.sendMessage("§cYou dont have permission to modify anything in this claim!");
+        return;
+    }
+
     const form = new SimpleForm("Claim Configuration", "Select an option:", [
         new FormButton("Edit Name"),
+        new FormButton("Edit Members"),
     ])
 
     form.sendTo(player.getNetworkIdentifier(), async (data) => {
@@ -1252,6 +1293,33 @@ function sendEditClaimForm(player: ServerPlayer, claim: Claim) {
                 player.sendMessage(`§aRenamed claim in group to §e${trimmedName}§a!`);
 
                 break;
+            case 1:
+                const xuids = claim.getMemberXuids();
+                const names: string[] = [];
+                for (const xuid of xuids) {
+                    const name = getName(xuid);
+                    if (name === undefined) {
+                        // Player name not stored anymore! Removing from claim since they cant be displayed otherwise.
+                        removePlayerFromClaim(claim, xuid);
+                        continue;
+                    }
+
+                    names.push(name);
+                }
+
+                if (names.length === 0) {
+                    player.sendMessage(`§cThis claim has no members!`);
+                    return;
+                }
+
+                const xuid = await sendSelectPlayerNameForm(player, xuids, names);
+
+                if (xuid === undefined) {
+                    // No name was selected
+                    return;
+                }
+
+                sendEditMemberForm(player, claim, xuid);
         }
     })
 }
@@ -1283,5 +1351,70 @@ async function sendYesNoForm(player: ServerPlayer, title: string, description: s
 
             resolve(data.response === true);
         })
+    })
+}
+
+function sendEditMemberForm(player: ServerPlayer, claim: Claim, memberXuid: string) {
+    const form = new SimpleForm(`Edit ${player.getName()}`, "Select an option", [
+        new FormButton('Remove Player'),
+        new FormButton('Edit Permissions'),
+    ]);
+
+    form.sendTo(player.getNetworkIdentifier(), (data) => {
+        if (data.response === undefined || isDecayed(player)) {
+            return;
+        }
+
+        let name = getName(memberXuid);
+        switch (data.response) {
+            case 0:
+                const isSure = sendYesNoForm(player, "CONFIRMATION", `Are you sure you want to remove ${name}?`);
+                if (!isSure) {
+                    return;
+                }
+
+                removePlayerFromClaim(claim, memberXuid);
+                player.sendMessage(`Removed ${name} from the claim!`);
+
+                break;
+            case 1:
+                sendEditMemberPermsForm(player, claim, memberXuid);
+        }
+    })
+}
+
+function sendEditMemberPermsForm(player: ServerPlayer, claim: Claim, memberXuid: string) {
+    let perms = claim.getMemberPermissions(memberXuid);
+
+    const permDatas = getClaimPermissionDatas();
+    const formToggles: FormToggle[] = [];
+    for (const permData of permDatas) {
+        let currentValue = perms?.get(permData.permissionName);
+        if (currentValue === undefined) {
+            currentValue = permData.defaultValue;
+        }
+
+        formToggles.push(new FormToggle(permData.optionName, currentValue));
+    }
+
+    const name = getName(memberXuid);
+    const form = new CustomForm(`Edit ${name}'s permissions`, formToggles);
+
+    form.sendTo(player.getNetworkIdentifier(), (data) => {
+        if (data.response === undefined || isDecayed(player)) {
+            return;
+        }
+
+        const newPermMap: Map<string, boolean> = new Map();
+        for (let i = 0; i < data.response; i++) {
+            const permData = permDatas[i];
+
+            newPermMap.set(permData.permissionName, data.response[i]);
+        }
+
+        claim.setMemberPermissions(memberXuid, newPermMap);
+        saveData();
+
+        player.sendMessage("Updated permissions!");
     })
 }

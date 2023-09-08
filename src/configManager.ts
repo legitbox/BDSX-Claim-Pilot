@@ -60,6 +60,7 @@ export interface Config {
                 removePlayerCommandEnabled: boolean;
                 setClaimNameCommandEnabled: boolean;
                 managedMergedClaimsCommandEnabled: boolean;
+                editClaimCommandEnabled: boolean;
             }
         };
         fclaim: {
@@ -270,6 +271,7 @@ function createDefaultConfig(): Config {
                     removePlayerCommandEnabled: true,
                     setClaimNameCommandEnabled: true,
                     managedMergedClaimsCommandEnabled: true,
+                    editClaimCommandEnabled: true,
                 }
             },
             fclaim: {
