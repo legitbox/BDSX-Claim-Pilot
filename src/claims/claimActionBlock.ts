@@ -31,7 +31,6 @@ events.blockDestroy.on((ev) => {
 
 events.blockPlace.on((ev) => {
     const xuid = ev.player.getXuid();
-    ev.player.sendMessage("Placed!");
     const claim = getClaimAtPos(ev.blockPos, ev.player.getDimensionId());
 
     if (claim === undefined) {
