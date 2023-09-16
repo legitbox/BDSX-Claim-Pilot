@@ -3,6 +3,7 @@ import {bool_t, int32_t, void_t} from "bdsx/nativetype";
 import {NativeConfigObject, NativeStorageObject} from "./dllTypes";
 import {pdbcache} from "bdsx/pdbcache";
 import {events} from "bdsx/event";
+import {Vec3} from "bdsx/bds/blockpos";
 
 const untoastedDll = NativeModule.load(
     __dirname + '\\bdsx-claim-pilot-untoasted.dll',
@@ -37,6 +38,15 @@ export const setSetBlockHookEnabled = untoastedDll.getFunction(
     void_t,
     null,
     bool_t,
+)
+
+export const checkIfBoxOverlapsAnyClaim = untoastedDll.getFunction(
+    'checkIfBoxOverlapsAnyClaim',
+    bool_t,
+    null,
+    Vec3,
+    Vec3,
+    int32_t,
 )
 
 events.serverOpen.on(() => {

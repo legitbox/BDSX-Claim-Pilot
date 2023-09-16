@@ -1,5 +1,6 @@
 import {CONFIG} from "../configManager";
 import {saveData} from "../Storage/storageManager";
+import {getOwnedClaims} from "./claim";
 
 export class BlockInfo {
     addedMaxBlocks: number;
@@ -31,6 +32,12 @@ export function getPlayerFreeBlocks(playerXuid: string) {
     let blocks = playerBlockMap.get(playerXuid);
     if (blocks === undefined) {
         blocks = setPlayerToDefaultBlockInfo(playerXuid);
+    }
+
+    const ownedClaims = getOwnedClaims(playerXuid, true);
+    if (ownedClaims.length === 0) {
+        blocks.usedBlocks = 0;
+        playerBlockMap.set(playerXuid, blocks);
     }
 
     return getPlayerMaxBlocks(playerXuid) - blocks.usedBlocks;
@@ -111,6 +118,21 @@ export function setPlayerBlockInfo(playerXuid: string, info: BlockInfo, shouldSa
     if (shouldSave) {
         saveData();
     }
+}
+
+export function setMaxBlocks(playerXuid: string, amount: number, shouldSave: boolean = true) {
+    let info = playerBlockMap.get(playerXuid);
+    if (info === undefined) {
+        info = setPlayerToDefaultBlockInfo(playerXuid);
+    }
+
+    info.addedMaxBlocks = amount;
+
+    if (shouldSave) {
+        saveData();
+    }
+
+    return getPlayerMaxBlocks(playerXuid);
 }
 
 export function addToMaxBlocks(playerXuid: string, amount: number, shouldSave: boolean = true) {

@@ -109,7 +109,7 @@ export class ClaimBuilder {
         const {cornerOne, cornerTwo} = organizeCorners(this.pos1, this.pos2);
 
         const box = new BoxCorners(cornerOne, cornerTwo);
-        if (isAnyClaimInBox(box)) {
+        if (isAnyClaimInBox(box, this.dimensionId)) {
             return ClaimBuildFailReason.OverlappingClaim;
         }
 
@@ -157,10 +157,11 @@ export class ClaimBuilder {
 }
 
 export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
+    const playerXuid = player.getXuid();
+
     const dimensionId = player.getDimensionId();
     const overlappedClaim = getClaimAtPos(pos, dimensionId);
 
-    const playerXuid = player.getXuid();
     const isServerClaim = isPlayerServerBuilder(playerXuid);
 
     let canPlaceInDimension;
@@ -181,12 +182,14 @@ export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
 
     if (!canPlaceInDimension && !isServerClaim) {
         player.sendMessage('§cClaims are not allowed in this dimension!');
+
         return;
     }
 
     if (overlappedClaim !== undefined) {
         // Already a claim at that spot!
         player.sendMessage('§cThat block overlaps an already existing claim!');
+
         return;
     }
 
@@ -197,6 +200,7 @@ export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
         availableBlocks = getPlayerFreeBlocks(claimXuid);
         if (availableBlocks <= 0) {
             player.sendMessage('§cYou dont have any free blocks!');
+
             return;
         }
     }
@@ -218,6 +222,13 @@ export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
 
         return;
     } else {
+        const playerDimension = player.getDimensionId();
+        if (playerDimension !== builder.dimensionId) {
+            player.sendMessage(`§cYou cant make a claim across dimensions!`);
+
+            return;
+        }
+
         builder.setPos2(pos);
         const claim = await builder.build(isServerClaim);
 
@@ -255,6 +266,7 @@ export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
             player.sendMessage(`§aServer claim created!`);
 
             builders.delete(playerXuid);
+
             return;
         } else {
             const {cornerOne, cornerTwo} = organizeCorners(builder.pos1, builder.pos2!);

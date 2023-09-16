@@ -2,7 +2,7 @@ import {SneakToggleEvent} from "../events/sneakToggleEvent";
 import {deleteItemFromArray, generateBox, getPlayersFromXuids, isWand} from "../utils";
 import {events} from "bdsx/event";
 import {CONFIG} from "../configManager";
-import {getOwnedOrMemberedClaims} from "./claim";
+import {getOwnedClaims, getOwnedOrMemberedClaims} from "./claim";
 import {bedrockServer} from "bdsx/launcher";
 import {Vec3} from "bdsx/bds/blockpos";
 import {MinecraftPacketIds} from "bdsx/bds/packetids";
@@ -10,6 +10,7 @@ import {CANCEL} from "bdsx/common";
 import {decay} from "bdsx/decay";
 import isDecayed = decay.isDecayed;
 import Timeout = NodeJS.Timeout;
+import {isPlayerServerBuilder} from "./claimBuilder";
 
 let activeViewList: string[] = [];
 
@@ -63,7 +64,13 @@ events.serverOpen.on(() => {
 
         for (const player of players) {
             const xuid = player.getXuid();
-            const claims = getOwnedOrMemberedClaims(xuid);
+            let claims;
+            if (isPlayerServerBuilder(xuid)) {
+                claims = getOwnedClaims("SERVER", true);
+            } else {
+                claims = getOwnedOrMemberedClaims(xuid);
+            }
+
             if (claims.length === 0) {
                 continue;
             }

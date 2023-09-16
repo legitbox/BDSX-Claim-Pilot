@@ -11,8 +11,6 @@ import {Actor} from "bdsx/bds/actor";
 import {ItemStack} from "bdsx/bds/inventory";
 import {nativeClass, NativeClass, nativeField} from "bdsx/nativeclass";
 import {isPointInBox} from "../utils";
-import {SharedPtr} from "bdsx/bds/sharedptr";
-import {VoidPointer} from "bdsx/core";
 
 events.blockDestroy.on((ev) => {
     const xuid = ev.player.getXuid();
@@ -97,14 +95,8 @@ events.playerAttack.on((ev) => {
 })
 
 events.playerInteract.on((ev) => {
-    const claim = getClaimAtPos(ev.victim.getPosition(), ev.victim.getDimensionId());
-    if (claim === undefined) {
-        return;
-    }
-
-    const xuid = ev.player.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    let canInteract = checkCanInteract(ev.player, ev.victim);
+    if (!canInteract) {
         return CANCEL;
     }
 })
@@ -329,4 +321,15 @@ function onRequestCanFlow(this: Block, region: BlockSource, target: BlockPos, so
     } else {
         return false;
     }
+}
+
+function checkCanInteract(player: ServerPlayer, target: Actor, _checkedPermission: string = "actor_interact") {
+    const claim = getClaimAtPos(target.getPosition(), target.getDimensionId());
+    if (claim === undefined) {
+        return;
+    }
+
+    const xuid = player.getXuid();
+    const claimMembers = claim.getMemberXuids();
+    return !(claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal);
 }

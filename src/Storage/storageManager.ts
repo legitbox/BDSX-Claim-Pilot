@@ -4,8 +4,10 @@ import {
     ClaimGroup,
     getOwnedClaims,
     getOwnedGroups,
-    registerClaim, registerClaimGroup,
-    registerServerClaim, registerServerClaimGroup
+    registerClaim,
+    registerClaimGroup,
+    registerServerClaim,
+    registerServerClaimGroup
 } from "../claims/claim";
 import {readFileSync, writeFileSync} from "fs";
 import {fsutil} from "bdsx/fsutil";
@@ -23,11 +25,11 @@ import {NativeStorageObject} from "../Native/dllTypes";
 import {MinecraftPacketIds} from "bdsx/bds/packetids";
 import {getXuidFromLoginPkt} from "../utils";
 import {CANCEL} from "bdsx/common";
+import {updateFrom1Version, updateFromNoVersion} from "./storageUpdater";
 import isFileSync = fsutil.isFileSync;
-import {updateFromNoVersion} from "./storageUpdater";
 
 const STORAGE_PATH = __dirname + '\\claimsData.json';
-const CURRENT_STORAGE_VERSION = 1;
+const CURRENT_STORAGE_VERSION = 2;
 export const NON_XUID_STORAGE = [
     "version",
     "serverClaims",
@@ -48,6 +50,15 @@ export function registerOnRegisteredDataLoaded(key: string, callback: (xuid: str
 }
 
 export function saveData() {
+    const data = generateSaveData();
+
+    writeFileSync(STORAGE_PATH, JSON.stringify(data, null, 4));
+
+    const nativeStorage = NativeStorageObject.uglyConstruct(data);
+    updateStorageInNative(nativeStorage);
+}
+
+export function generateSaveData() {
     const playersWithStorage = playerNameMap.entries();
 
     const storage: any = {};
@@ -64,31 +75,7 @@ export function saveData() {
         storage[xuid] = {};
 
         const ownedClaims = getOwnedClaims(xuid);
-        const memberClaimData: any[] = [];
-        for (const claim of ownedClaims) {
-            const memberXuids = claim.getMemberXuids();
-            const membersData: any = {};
-            for (const xuid of memberXuids) {
-                const memberPermMap = claim.getMemberPermissions(xuid)!;
-
-                const permData: any = {};
-                for (const [permission, value] of memberPermMap.entries()) {
-                    permData[permission] = value;
-                }
-
-                membersData[xuid] = permData;
-            }
-
-            memberClaimData.push({
-                owner: claim.owner,
-                name: claim.getName(true),
-                id: claim.id,
-                cornerOne: claim.cornerOne,
-                cornerEight: claim.cornerEight,
-                dimension: claim.dimension,
-                members: membersData
-            })
-        }
+        const memberClaimData: any[] = createClaimData(ownedClaims);
 
         storage[xuid].groups = getOwnedGroups(xuid);
         storage[xuid].claims = memberClaimData;
@@ -124,33 +111,7 @@ export function saveData() {
     }
 
     const serverClaims = getOwnedClaims("SERVER");
-    const serverClaimsData: any[] = [];
-    for (const claim of serverClaims) {
-        const memberXuids = claim.getMemberXuids();
-        const membersData: any = {};
-        for (const xuid of memberXuids) {
-            const memberPermMap = claim.getMemberPermissions(xuid)!;
-
-            const permData: any = {};
-            for (const [permission, value] of memberPermMap.entries()) {
-                permData[permission] = value;
-            }
-
-            membersData[xuid] = permData;
-        }
-
-        serverClaimsData.push({
-            owner: claim.owner,
-            name: claim.getName(true),
-            id: claim.id,
-            cornerOne: claim.cornerOne,
-            cornerEight: claim.cornerEight,
-            dimension: claim.dimension,
-            members: membersData
-        })
-    }
-
-    storage.serverClaims = serverClaimsData;
+    storage.serverClaims = createClaimData(serverClaims);
 
     const serverGroups = getOwnedGroups("SERVER");
     const serverGroupData: any[] = [];
@@ -171,6 +132,7 @@ export function saveData() {
             groupId: group.groupId,
             groupName: group.groupName,
             ownerXuid: group.ownerXuid,
+            coOwners: group.coOwners,
             claimIds: group.claimIds,
             members: memberPermissions,
         })
@@ -178,13 +140,17 @@ export function saveData() {
 
     storage.serverGroups = serverGroupData;
 
-    writeFileSync(STORAGE_PATH, JSON.stringify(storage, null, 4));
+    return storage;
+}
 
-    const nativeStorage = NativeStorageObject.uglyConstruct(storage);
+export function updateNativeStorage() {
+    const data = generateSaveData();
+
+    const nativeStorage = NativeStorageObject.uglyConstruct(data);
     updateStorageInNative(nativeStorage);
 }
 
-function loadData() {
+function loadData(shouldRegisterReadData: boolean = true) {
     if (!isFileSync(STORAGE_PATH)) {
         return;
     }
@@ -213,7 +179,9 @@ function loadData() {
 
         for (const claimData of playerData.claims) {
             const claim = Claim.fromData(claimData);
-            registerClaim(claim);
+            if (shouldRegisterReadData) {
+                registerClaim(claim);
+            }
         }
 
         const blockInfoData = playerData.blockInfo;
@@ -230,7 +198,7 @@ function loadData() {
             playerNameMap.set(xuid, playerData.name);
         }
 
-        if (Object.keys(playerData).includes('groups')) {
+        if (Object.keys(playerData).includes('groups') && shouldRegisterReadData) {
             const groupDatas = playerData.groups;
             for (const groupData of groupDatas) {
                 const group = ClaimGroup.fromData(groupData);
@@ -252,14 +220,14 @@ function loadData() {
         }
     }
 
-    if (data.serverClaims !== undefined) {
+    if (data.serverClaims !== undefined && shouldRegisterReadData) {
         for (const claimData of data.serverClaims) {
             const claim = Claim.fromData(claimData);
             registerServerClaim(claim);
         }
     }
 
-    if (data.serverGroups !== undefined) {
+    if (data.serverGroups !== undefined && shouldRegisterReadData) {
         for (const groupData of data.serverGroups) {
             const group = ClaimGroup.fromData(groupData);
             registerServerClaimGroup(group);
@@ -286,6 +254,17 @@ events.packetRaw(MinecraftPacketIds.Login).on((pkt) => {
     playerNameMap.set(xuid, name);
 })
 
+events.playerJoin.on((ev) => {
+    const name = ev.player.getName();
+    const xuid = ev.player.getXuid();
+
+    playerNameMap.set(xuid, name);
+})
+
+export function setName(xuid: string, name: string) {
+    playerNameMap.set(xuid, name);
+}
+
 export function getName(xuid: string) {
     return playerNameMap.get(xuid);
 }
@@ -295,6 +274,10 @@ function updateStorageFromVersion(storage: any, version: number) {
     switch (version) {
         case undefined:
             newStorage = updateFromNoVersion(storage);
+            break;
+        case 1:
+            newStorage = updateFrom1Version(storage);
+            break;
     }
 
     newStorage.version = CURRENT_STORAGE_VERSION;
@@ -306,8 +289,9 @@ function updateStorageFromVersion(storage: any, version: number) {
 
 export function getStoredXuidsFromStorage(storage: any) {
     const retXuids: string[] = [];
+    const keys = Object.keys(storage);
 
-    for (const key in storage) {
+    for (const key of keys) {
         if (NON_XUID_STORAGE.includes(key)) {
             continue;
         }
@@ -316,4 +300,35 @@ export function getStoredXuidsFromStorage(storage: any) {
     }
 
     return retXuids;
+}
+
+function createClaimData(claims: Claim[]): any[] {
+    const serverClaimsData: any[] = [];
+    for (const claim of claims) {
+        const memberXuids = claim.getMemberXuids();
+        const membersData: any = {};
+        for (const xuid of memberXuids) {
+            const memberPermMap = claim.getMemberPermissions(xuid)!;
+
+            const permData: any = {};
+            for (const [permission, value] of memberPermMap.entries()) {
+                permData[permission] = value;
+            }
+
+            membersData[xuid] = permData;
+        }
+
+        serverClaimsData.push({
+            owner: claim.owner,
+            coOwners: claim.coOwners,
+            name: claim.getName(true),
+            id: claim.id,
+            cornerOne: claim.cornerOne,
+            cornerEight: claim.cornerEight,
+            dimension: claim.dimension,
+            members: membersData
+        })
+    }
+
+    return serverClaimsData;
 }

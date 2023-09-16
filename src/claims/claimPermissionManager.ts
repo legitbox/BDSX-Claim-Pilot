@@ -52,6 +52,9 @@ export function getClaimPermissionDatas(): ClaimPermissionData[] {
     return Array.from(ClaimPermissionDatas.values());
 }
 
+export function getPermData(permission: string) {
+    return ClaimPermissionDatas.get(permission);
+}
+
 // Area for registering built in permissions
-registerPermission("edit_members", false, "Can Edit Members");
 registerPermission("edit_name", false, "Can Edit Claim Name");

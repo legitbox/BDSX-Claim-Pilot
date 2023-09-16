@@ -53,13 +53,8 @@ export interface Config {
             quickFormEnabled: boolean;
             subcommandOptions: {
                 checkBlocksCommandEnabled: boolean;
-                deleteClaimCommandEnabled: boolean;
                 cancelClaimCreationCommandEnabled: boolean;
                 giveWandCommandEnabled: boolean;
-                addPlayerCommandEnabled: boolean;
-                removePlayerCommandEnabled: boolean;
-                setClaimNameCommandEnabled: boolean;
-                managedMergedClaimsCommandEnabled: boolean;
                 editClaimCommandEnabled: boolean;
             }
         };
@@ -69,9 +64,7 @@ export interface Config {
             aliases: string[];
             quickFormEnabled: boolean;
             subcommandOptions: {
-                addMaxToPlayerCommandEnabled: boolean;
-                removeMaxFromPlayerCommandEnabled: boolean;
-                checkPlayerBlocksCommandEnabled: boolean;
+                editPlayerBlocksCommandEnabled: boolean;
                 serverClaimCreationModeToggleCommandEnabled: boolean;
             }
         }
@@ -79,6 +72,7 @@ export interface Config {
             isEnabled: boolean,
             commandName: string,
             aliases: string[],
+            quickFormEnabled: boolean,
             subcommandOptions: {
                 checkPlaytimeCommandEnabled: boolean,
                 checkOtherPlayerPlaytimeCommandEnabled: boolean,
@@ -124,7 +118,6 @@ export function registerConfigOverride(permissionKey: string, forcedValue: any) 
 
     const existingOverride = configOverrides.get(permissionKey);
     if (existingOverride !== undefined) {
-        // TODO: Implement recursive object comparison
         if (forcedValue !== existingOverride) {
             return ConfigOverrideResult.OverlappingOverride;
         }
@@ -264,13 +257,8 @@ function createDefaultConfig(): Config {
                 quickFormEnabled: true,
                 subcommandOptions: {
                     checkBlocksCommandEnabled: true,
-                    deleteClaimCommandEnabled: true,
                     cancelClaimCreationCommandEnabled: true,
                     giveWandCommandEnabled: true,
-                    addPlayerCommandEnabled: true,
-                    removePlayerCommandEnabled: true,
-                    setClaimNameCommandEnabled: true,
-                    managedMergedClaimsCommandEnabled: true,
                     editClaimCommandEnabled: true,
                 }
             },
@@ -280,9 +268,7 @@ function createDefaultConfig(): Config {
                 aliases: [],
                 quickFormEnabled: true,
                 subcommandOptions: {
-                    addMaxToPlayerCommandEnabled: true,
-                    removeMaxFromPlayerCommandEnabled: true,
-                    checkPlayerBlocksCommandEnabled: true,
+                    editPlayerBlocksCommandEnabled: true,
                     serverClaimCreationModeToggleCommandEnabled: true
                 }
             },
@@ -290,6 +276,7 @@ function createDefaultConfig(): Config {
                 isEnabled: true,
                 commandName: "playtime",
                 aliases: ["pt"],
+                quickFormEnabled: true,
                 subcommandOptions: {
                     checkPlaytimeCommandEnabled: true,
                     checkOtherPlayerPlaytimeCommandEnabled: true

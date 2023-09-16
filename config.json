@@ -40,13 +40,8 @@
             "quickFormEnabled": true,
             "subcommandOptions": {
                 "checkBlocksCommandEnabled": true,
-                "deleteClaimCommandEnabled": true,
                 "cancelClaimCreationCommandEnabled": true,
                 "giveWandCommandEnabled": true,
-                "addPlayerCommandEnabled": true,
-                "removePlayerCommandEnabled": true,
-                "setClaimNameCommandEnabled": true,
-                "managedMergedClaimsCommandEnabled": true,
                 "editClaimCommandEnabled": true
             }
         },
@@ -56,9 +51,7 @@
             "aliases": [],
             "quickFormEnabled": true,
             "subcommandOptions": {
-                "addMaxToPlayerCommandEnabled": true,
-                "removeMaxFromPlayerCommandEnabled": true,
-                "checkPlayerBlocksCommandEnabled": true,
+                "editPlayerBlocksCommandEnabled": true,
                 "serverClaimCreationModeToggleCommandEnabled": true
             }
         },
@@ -68,6 +61,7 @@
             "aliases": [
                 "pt"
             ],
+            "quickFormEnabled": true,
             "subcommandOptions": {
                 "checkPlaytimeCommandEnabled": true,
                 "checkOtherPlayerPlaytimeCommandEnabled": true
