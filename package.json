@@ -1,6 +1,6 @@
 {
   "name": "@bdsx/claim-pilot",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "description": "Simple claims plugin for BDSX!",
   "main": "index.js",
   "scripts": {
