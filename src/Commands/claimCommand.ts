@@ -1348,7 +1348,7 @@ export function handleCancelClaim(executor: ServerPlayer) {
 
     switch (res) {
         case CancelClaimResult.NotABuilder:
-            let errorMsg = getOverriddenText("claim.cancel.error.colored");
+            let errorMsg = getOverriddenText("claim.cancel.error");
             if (errorMsg === undefined) {
                 errorMsg = '§cYou are not creating a claim!'
             }
