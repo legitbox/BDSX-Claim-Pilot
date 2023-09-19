@@ -86,25 +86,7 @@ events.serverOpen.on(() => {
                     return;
                 }
 
-                const playerXuid = player.getXuid();
-                const res = cancelClaim(playerXuid);
-
-                switch (res) {
-                    case CancelClaimResult.NotABuilder:
-                        let errorMsg = getOverriddenText("claim.cancel.error.uncolored");
-                        if (errorMsg === undefined) {
-                            errorMsg = 'You are not creating a claim!'
-                        }
-                        output.error(errorMsg);
-                        break;
-                    case CancelClaimResult.Success:
-                        let successMsg = getOverriddenText("claim.cancel.success");
-                        if (successMsg === undefined) {
-                            successMsg = '§aClaim creation cancelled!';
-                        }
-                        output.success(successMsg);
-                        break;
-                }
+                handleCancelClaim(player);
             }, {
                 options: command.enum('options.cancel', 'cancel'),
             })
@@ -1350,32 +1332,36 @@ async function sendClaimCommandSimpleForm(target: ServerPlayer) {
 
                     break;
                 case "cancel":
-                    const playerXuid = target.getXuid();
-                    const res = cancelClaim(playerXuid);
-
-                    switch (res) {
-                        case CancelClaimResult.NotABuilder:
-                            let errorMsg = getOverriddenText("claim.cancel.error.colored");
-                            if (errorMsg === undefined) {
-                                errorMsg = '§cYou are not creating a claim!'
-                            }
-
-                            target.sendMessage(errorMsg);
-                            break;
-                        case CancelClaimResult.Success:
-                            let successMsg = getOverriddenText("claim.cancel.success");
-                            if (successMsg === undefined) {
-                                successMsg = '§aClaim creation cancelled!';
-                            }
-
-                            target.sendMessage(successMsg);
-                            break;
-                    }
-
+                    handleCancelClaim(target);
                     break;
             }
 
             resolve(undefined)
         })
     })
+}
+
+export function handleCancelClaim(executor: ServerPlayer) {
+    const executorXuid = executor.getXuid();
+
+    const res = cancelClaim(executorXuid);
+
+    switch (res) {
+        case CancelClaimResult.NotABuilder:
+            let errorMsg = getOverriddenText("claim.cancel.error.colored");
+            if (errorMsg === undefined) {
+                errorMsg = '§cYou are not creating a claim!'
+            }
+
+            executor.sendMessage(errorMsg);
+            break;
+        case CancelClaimResult.Success:
+            let successMsg = getOverriddenText("claim.cancel.success");
+            if (successMsg === undefined) {
+                successMsg = '§aClaim creation cancelled!';
+            }
+
+            executor.sendMessage(successMsg);
+            break;
+    }
 }
