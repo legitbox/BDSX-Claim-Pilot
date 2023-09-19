@@ -1,7 +1,7 @@
 import {events} from "bdsx/event";
 import {getClaimAtPos} from "./claim";
 import {CommandPermissionLevel} from "bdsx/bds/command";
-import {CANCEL} from "bdsx/common";
+import {CANCEL, VectorXYZ} from "bdsx/common";
 import {ServerPlayer} from "bdsx/bds/player";
 import {procHacker} from "bdsx/prochacker";
 import {bool_t, int32_t, uint8_t, void_t} from "bdsx/nativetype";
@@ -13,46 +13,19 @@ import {nativeClass, NativeClass, nativeField} from "bdsx/nativeclass";
 import {isPointInBox} from "../utils";
 
 events.blockDestroy.on((ev) => {
-    const xuid = ev.player.getXuid();
-    const claim = getClaimAtPos(ev.blockPos, ev.player.getDimensionId());
-
-    if (claim === undefined) {
-        return;
-    }
-
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        ev.player.sendMessage('§cYou dont have permission to break blocks in this claim!');
+    if (!checkCanInteractWithBlock(ev.player, ev.blockPos)) {
         return CANCEL;
     }
 })
 
 events.blockPlace.on((ev) => {
-    const xuid = ev.player.getXuid();
-    const claim = getClaimAtPos(ev.blockPos, ev.player.getDimensionId());
-
-    if (claim === undefined) {
-        return;
-    }
-
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        ev.player.sendMessage('§cYou dont have permission to place blocks in this claim!');
+    if (!checkCanInteractWithBlock(ev.player, ev.blockPos)) {
         return CANCEL;
     }
 })
 
 events.blockInteractedWith.on((ev) => {
-    const xuid = ev.player.getXuid();
-    const claim = getClaimAtPos(ev.blockPos, ev.player.getDimensionId());
-
-    if (claim === undefined) {
-        return;
-    }
-
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        ev.player.sendMessage('§cYou dont have permission to use blocks in this claim!');
+    if (!checkCanInteractWithBlock(ev.player, ev.blockPos)) {
         return CANCEL;
     }
 })
@@ -66,37 +39,19 @@ events.itemUseOnBlock.on((ev) => {
         return ;
     }
 
-    const xuid = ev.actor.getXuid();
-    const claim = getClaimAtPos(ev, ev.actor.getDimensionId());
-
-    if (claim === undefined) {
-        return;
-    }
-
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    if (!checkCanInteractWithBlock(ev.actor, ev)) {
         return CANCEL;
     }
 })
 
 events.playerAttack.on((ev) => {
-    const claim = getClaimAtPos(ev.victim.getPosition(), ev.victim.getDimensionId());
-    if (claim === undefined) {
-        return;
-    }
-
-    const xuid = ev.player.getXuid();
-
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        ev.player.sendMessage('§cYou are not allowed to harm entities in this claim!');
+    if (!checkCanInteractWithTarget(ev.player, ev.victim)) {
         return CANCEL;
     }
 })
 
 events.playerInteract.on((ev) => {
-    let canInteract = checkCanInteract(ev.player, ev.victim);
-    if (!canInteract) {
+    if (!checkCanInteractWithTarget(ev.player, ev.victim)) {
         return CANCEL;
     }
 })
@@ -106,28 +61,13 @@ events.entityStartRiding.on((ev) => {
         return;
     }
 
-    const claim = getClaimAtPos(ev.ride.getPosition(), ev.ride.getDimensionId());
-    if (claim === undefined) {
-        return;
-    }
-
-    const xuid = ev.entity.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.entity.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    if (!checkCanInteractWithTarget(ev.entity, ev.ride)) {
         return CANCEL;
     }
 })
 
 function handleItemUseClaimCheck(player: ServerPlayer) {
-    const xuid = player.getXuid();
-    const claim = getClaimAtPos(player.getPosition(), player.getDimensionId());
-
-    if (claim === undefined) {
-        return;
-    }
-
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    if (!checkCanInteractWithBlock(player, player.getPosition())) {
         return CANCEL;
     }
 }
@@ -137,18 +77,9 @@ events.farmlandDecay.on((ev) => {
         return;
     }
 
-    const claim = getClaimAtPos(ev.blockPos, ev.culprit.getDimensionId());
-    if (claim === undefined) {
-        return;
-    }
-
-    const xuid = ev.culprit.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && ev.culprit.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    if (!checkCanInteractWithBlock(ev.culprit, ev.blockPos)) {
         return CANCEL;
     }
-
-    return;
 })
 
 const grassBlock$tryToTill = procHacker.hooking(
@@ -166,18 +97,11 @@ function onTryTill(this: Block, region: BlockSource, pos: BlockPos, tiller: Acto
         return grassBlock$tryToTill.call(this, region, pos, tiller, item);
     }
 
-    const claim = getClaimAtPos(pos, tiller.getDimensionId());
-    if (claim === undefined) {
+    if (checkCanInteractWithBlock(tiller, pos)) {
         return grassBlock$tryToTill.call(this, region, pos, tiller, item);
-    }
-
-    const xuid = tiller.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && tiller.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    } else {
         return false;
     }
-
-    return grassBlock$tryToTill.call(this, region, pos, tiller, item);
 }
 
 
@@ -206,20 +130,13 @@ function onUseBucket(this: BucketItem, res: InteractionResult, item: ItemStack, 
         return _bucketItem_useOn.call(this, res, item, actor, pos, side, uVec3);
     }
 
-    const claim = getClaimAtPos(pos, actor.getDimensionId());
-    if (claim === undefined) {
+    if (checkCanInteractWithBlock(actor, pos)) {
         return _bucketItem_useOn.call(this, res, item, actor, pos, side, uVec3);
-    }
-
-    const xuid = actor.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && actor.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    } else {
         const falseResult = InteractionResult.allocate();
         falseResult.value = 0;
         return falseResult;
     }
-
-    return _bucketItem_useOn.call(this, res, item, actor, pos, side, uVec3);
 }
 
 const block$use = procHacker.hooking(
@@ -232,19 +149,11 @@ const block$use = procHacker.hooking(
 )(onUseRepeater);
 
 function onUseRepeater(this: Block, player: ServerPlayer, pos: BlockPos, side: uint8_t) {
-    const claim = getClaimAtPos(pos, player.getDimensionId());
-    if (claim === undefined) {
+    if (checkCanInteractWithBlock(player, pos)) {
         return block$use.call(this, player, pos, side);
-    }
-
-    const xuid = player.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
-        player.sendMessage('§cYou dont have permission to use blocks in this claim!');
+    } else {
         return false;
     }
-
-    return block$use.call(this, player, pos, side);
 }
 
 const itemFrameBlock$attack = procHacker.hooking(
@@ -256,18 +165,11 @@ const itemFrameBlock$attack = procHacker.hooking(
 )(onItemFrameAttack);
 
 function onItemFrameAttack(this: Block, player: ServerPlayer, pos: BlockPos) {
-    const claim = getClaimAtPos(pos, player.getDimensionId());
-    if (claim === undefined) {
+    if (checkCanInteractWithBlock(player, pos)) {
         return itemFrameBlock$attack.call(this, player, pos);
-    }
-
-    const xuid = player.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    } else {
         return false;
     }
-
-    return itemFrameBlock$attack.call(this, player, pos);
 }
 
 const basePressurePlate$checkPressed = procHacker.hooking(
@@ -286,18 +188,11 @@ function onCheckPressed(this: Block, region: BlockSource, pos: BlockPos, presser
         return basePressurePlate$checkPressed.call(this, region, pos, presser, uNum1, uNum2);
     }
 
-    const claim = getClaimAtPos(pos, region.getDimensionId());
-    if (claim === undefined) {
+    if (checkCanInteractWithBlock(presser, pos)) {
         return basePressurePlate$checkPressed.call(this, region, pos, presser, uNum1, uNum2);
-    }
-
-    const xuid = presser.getXuid();
-    const claimMembers = claim.getMemberXuids();
-    if (claim.owner !== xuid && !claimMembers.includes(xuid) && presser.getCommandPermissionLevel() === CommandPermissionLevel.Normal) {
+    } else {
         return;
     }
-
-    return basePressurePlate$checkPressed.call(this, region, pos, presser, uNum1, uNum2);
 }
 
 const liquidBlockDynamic$canSpreadTo = procHacker.hooking(
@@ -323,10 +218,22 @@ function onRequestCanFlow(this: Block, region: BlockSource, target: BlockPos, so
     }
 }
 
-function checkCanInteract(player: ServerPlayer, target: Actor, _checkedPermission: string = "actor_interact") {
+function checkCanInteractWithBlock(player: ServerPlayer, pos: VectorXYZ, _checkedPermission?: string) {
+    const claim = getClaimAtPos(pos, player.getDimensionId());
+    if (claim === undefined) {
+        return true;
+    }
+
+    const xuid = player.getXuid();
+    const claimMembers = claim.getMemberXuids();
+
+    return !(claim.owner !== xuid && !claimMembers.includes(xuid) && player.getCommandPermissionLevel() === CommandPermissionLevel.Normal);
+}
+
+function checkCanInteractWithTarget(player: ServerPlayer, target: Actor, _checkedPermission?: string) {
     const claim = getClaimAtPos(target.getPosition(), target.getDimensionId());
     if (claim === undefined) {
-        return;
+        return true;
     }
 
     const xuid = player.getXuid();
