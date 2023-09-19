@@ -10,6 +10,8 @@ import {Config} from "bdsx/config";
 import {updateConfigInNative} from "./Native/dllManager";
 import {NativeConfigObject} from "./Native/dllTypes";
 import {events} from "bdsx/event";
+import {fireEvent} from "./events/eventStorage";
+import {ClaimPilotLoadedEvent} from "./events/onLoadedEvent";
 
 const CONFIG_PATH = __dirname + '\\..\\config.json';
 
@@ -149,6 +151,8 @@ events.serverLoading.on(() => {
     for (const [permissionKey, value] of configOverrides.entries()) {
         setValueAtPermissionKey(permissionKey, value);
     }
+
+    fireEvent(ClaimPilotLoadedEvent.ID, undefined);
 })
 
 function setValueAtPermissionKey(permissionKey: string, value: any) {

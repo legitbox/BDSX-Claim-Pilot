@@ -25,6 +25,7 @@ import {getPlayerFreeBlocks, getPlayerMaxBlocks} from "../claims/claimBlocksMana
 import {cancelClaim, CancelClaimResult, isPlayerServerBuilder} from "../claims/claimBuilder";
 import isDecayed = decay.isDecayed;
 import {selectPlayerForm, sendTextInputForm, sendTwoChoiceForm, TwoChoiceFormResult} from "./commandUtils";
+import {getOverriddenText} from "../overideTextSystem";
 
 events.serverOpen.on(() => {
     const claimCommandConfig = CONFIG.commandOptions.claim;
@@ -90,10 +91,18 @@ events.serverOpen.on(() => {
 
                 switch (res) {
                     case CancelClaimResult.NotABuilder:
-                        output.error('You are not creating a claim!');
+                        let errorMsg = getOverriddenText("claim.cancel.error");
+                        if (errorMsg === undefined) {
+                            errorMsg = 'You are not creating a claim!'
+                        }
+                        output.error(errorMsg);
                         break;
                     case CancelClaimResult.Success:
-                        output.success('§aClaim creation cancelled!');
+                        let successMsg = getOverriddenText("claim.cancel.success");
+                        if (successMsg === undefined) {
+                            successMsg = '§aClaim creation cancelled!';
+                        }
+                        output.success(successMsg);
                         break;
                 }
             }, {
