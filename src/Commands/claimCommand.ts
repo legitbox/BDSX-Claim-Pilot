@@ -119,7 +119,7 @@ events.serverOpen.on(() => {
 
 const wandCooldownMap: Map<string, number> = new Map();
 
-function handleWandCommand(executor: ServerPlayer) {
+export function handleWandCommand(executor: ServerPlayer) {
     const xuid = executor.getXuid();
     const lastRequestTime = wandCooldownMap.get(xuid);
 
