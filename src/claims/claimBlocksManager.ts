@@ -34,12 +34,6 @@ export function getPlayerFreeBlocks(playerXuid: string) {
         blocks = setPlayerToDefaultBlockInfo(playerXuid);
     }
 
-    const ownedClaims = getOwnedClaims(playerXuid, true);
-    if (ownedClaims.length === 0) {
-        blocks.usedBlocks = 0;
-        playerBlockMap.set(playerXuid, blocks);
-    }
-
     return getPlayerMaxBlocks(playerXuid) - blocks.usedBlocks;
 }
 
