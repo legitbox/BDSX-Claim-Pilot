@@ -91,7 +91,7 @@ events.serverOpen.on(() => {
 
                 switch (res) {
                     case CancelClaimResult.NotABuilder:
-                        let errorMsg = getOverriddenText("claim.cancel.error");
+                        let errorMsg = getOverriddenText("claim.cancel.error.uncolored");
                         if (errorMsg === undefined) {
                             errorMsg = 'You are not creating a claim!'
                         }
@@ -1355,10 +1355,20 @@ async function sendClaimCommandSimpleForm(target: ServerPlayer) {
 
                     switch (res) {
                         case CancelClaimResult.NotABuilder:
-                            target.sendMessage('§cYou are not creating a claim!');
+                            let errorMsg = getOverriddenText("claim.cancel.error.colored");
+                            if (errorMsg === undefined) {
+                                errorMsg = '§cYou are not creating a claim!'
+                            }
+
+                            target.sendMessage(errorMsg);
                             break;
                         case CancelClaimResult.Success:
-                            target.sendMessage('§aClaim creation cancelled!');
+                            let successMsg = getOverriddenText("claim.cancel.success");
+                            if (successMsg === undefined) {
+                                successMsg = '§aClaim creation cancelled!';
+                            }
+
+                            target.sendMessage(successMsg);
                             break;
                     }
 
