@@ -5,7 +5,7 @@ export namespace ClaimCreationEvent {
     export const ID = 'ClaimCreationEvent';
     export const CANCELABLE = true;
     export const ASYNC_ALLOWED = true;
-    export type CALLBACK = (claim: Claim, ownerXuid: string) => Promise<ClaimCreationExtraData> | ClaimCreationExtraData;
+    export type CALLBACK = (claim: Claim, creatorXuid: string) => Promise<ClaimCreationExtraData> | ClaimCreationExtraData;
 
     export function register(callback: CALLBACK) {
         registerEvent(ID, callback);
@@ -14,7 +14,7 @@ export namespace ClaimCreationEvent {
     export async function handleFireCallbacks(callbacks: CALLBACK[], data: any) {
         let shouldExecute = true;
         for (const callback of callbacks) {
-            const callbackResult = callback(data.claim, data.ownerXuid);
+            const callbackResult = callback(data.claim, data.creatorXuid);
             let extraData;
             if (callbackResult instanceof Promise) {
                 extraData = await callbackResult;

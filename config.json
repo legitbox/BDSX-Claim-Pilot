@@ -52,7 +52,8 @@
             "quickFormEnabled": true,
             "subcommandOptions": {
                 "editPlayerBlocksCommandEnabled": true,
-                "serverClaimCreationModeToggleCommandEnabled": true
+                "serverClaimCreationModeToggleCommandEnabled": true,
+                "fixPlayerBlocksCommandEnabled": true
             }
         },
         "playtime": {

@@ -99,7 +99,7 @@ export class ClaimBuilder {
         return this;
     }
 
-    async build(isServer: boolean = false) {
+    async build(creatorXuid: string, isServer: boolean = false) {
         if (this.pos2 === undefined) {
             return ClaimBuildFailReason.NoPos2
         } else if (this.name === undefined) {
@@ -149,7 +149,7 @@ export class ClaimBuilder {
         }
 
         if (isServer) {
-            return registerNewServerClaim(this.name, this.pos1, this.pos2, this.dimensionId);
+            return await registerNewServerClaim(this.name, this.pos1, this.pos2, this.dimensionId, creatorXuid);
         } else {
             return await registerNewClaim(this.ownerXuid, this.name, this.pos1, this.pos2, this.dimensionId);
         }
@@ -230,7 +230,7 @@ export async function triggerWandUse(pos: BlockPos, player: ServerPlayer) {
         }
 
         builder.setPos2(pos);
-        const claim = await builder.build(isServerClaim);
+        const claim = await builder.build(playerXuid, isServerClaim);
 
         if (!(claim instanceof Claim)) {
             switch (claim) {

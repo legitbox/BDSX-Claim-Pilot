@@ -1,7 +1,7 @@
 import {registerEvent, registerEventType} from "./eventStorage";
 
-export namespace ClaimPilotLoadedEvent {
-    export const ID = 'ClaimPilotLoadedEvent';
+export namespace CommandsRegisteredEvent {
+    export const ID = 'CommandsRegisteredEvent';
     export const CANCELABLE = false;
     export const ASYNC_ALLOWED = true;
     export type CALLBACK = () => Promise<void> | void;
@@ -20,4 +20,4 @@ export namespace ClaimPilotLoadedEvent {
     }
 }
 
-registerEventType(ClaimPilotLoadedEvent);
+registerEventType(CommandsRegisteredEvent);

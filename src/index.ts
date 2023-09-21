@@ -21,7 +21,4 @@ import './claims/claimExplosionProtection';
 
 import './playerPlaytime/playtime';
 
-import './Commands/claimCommand';
-import './Commands/modClaimCommand';
-import './Commands/playtimeCommand';
-import './Commands/configCommand';
+import './Commands/index';

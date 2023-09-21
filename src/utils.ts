@@ -8,6 +8,7 @@ import {bedrockServer} from "bdsx/launcher";
 import {NBT} from "bdsx/bds/nbt";
 import {NativePointer} from "bdsx/core";
 import {decode} from "base-64";
+import {readFileSync} from "fs";
 
 export function generateID(length: number): string {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -209,7 +210,7 @@ export class BoxCorners {
     }
 }
 
-export function isBoxOverlapping(boxOne: BoxCorners, boxTwo: BoxCorners) {
+/*export function isBoxOverlapping(boxOne: BoxCorners, boxTwo: BoxCorners) {
     return isPointInBox(boxTwo.bottom.cornerOne, boxOne.bottom.cornerOne, boxOne.top.cornerFour) ||
         isPointInBox(boxTwo.bottom.cornerTwo, boxOne.bottom.cornerOne, boxOne.top.cornerFour) ||
         isPointInBox(boxTwo.bottom.cornerThree, boxOne.bottom.cornerOne, boxOne.top.cornerFour) ||
@@ -218,7 +219,7 @@ export function isBoxOverlapping(boxOne: BoxCorners, boxTwo: BoxCorners) {
         isPointInBox(boxTwo.top.cornerTwo, boxOne.bottom.cornerOne, boxOne.top.cornerFour) ||
         isPointInBox(boxTwo.top.cornerThree, boxOne.bottom.cornerOne, boxOne.top.cornerFour) ||
         isPointInBox(boxTwo.top.cornerFour, boxOne.bottom.cornerOne, boxOne.top.cornerFour);
-}
+}*/
 
 export function organizeCorners(pos1: SerializableVec3, pos2: SerializableVec3) {
     let lowestX;
@@ -386,4 +387,19 @@ export function createFormattedTimeString(time: number) {
     }
 
     return timeStr.slice(0 ,timeStr.length - 2) + '§r';
+}
+
+export function getOfflinePlayerOp(xuid: string) {
+    const permissionDataStr = readFileSync("./permissions.json", 'utf-8');
+    const permissionDatas = JSON.parse(permissionDataStr);
+
+    for (const permissionData of permissionDatas) {
+        if (permissionData.xuid !== xuid) {
+            continue;
+        }
+
+        return permissionData.permission === "operator";
+    }
+
+    return false;
 }

@@ -192,19 +192,20 @@ async function handleEditGroupForm(target: ServerPlayer) {
     const isOp = target.getCommandPermissionLevel() === CommandPermissionLevel.Operator;
     const isOwner = selectedGroup.getOwner() === targetXuid;
     const isCoOwner = selectedGroup.isCoOwner(targetXuid);
-    const canEditName = getPlayerPermissionState(selectedGroup, targetXuid, "edit_name") || isOp;
+    const canEditName = getPlayerPermissionState(selectedGroup, targetXuid, "edit_name");
+    const canEditMembers = getPlayerPermissionState(selectedGroup, targetXuid, "edit_members");
 
     if (canEditName) {
         buttons.push(new FormButton("Edit Group Name"));
         actionIds.push("edit_name");
     }
 
-    if (canEditName) {
+    if (isOwner || isCoOwner || isOp) {
         buttons.push(new FormButton("Edit Grouped Claim"));
         actionIds.push("edit_claim");
     }
 
-    if (isOp || isOwner || isCoOwner) {
+    if (canEditMembers) {
         buttons.push(new FormButton("Edit Members"));
         actionIds.push("edit_members");
     }
@@ -321,13 +322,14 @@ async function handleEditClaimForm(target: ServerPlayer) {
 
     const isOp = target.getCommandPermissionLevel() === CommandPermissionLevel.Operator;
 
-    if (isOp || getPlayerPermissionState(selectedClaim, xuid, "edit_name")) {
+    if (getPlayerPermissionState(selectedClaim, xuid, "edit_name")) {
         buttons.push(new FormButton("Set Claim Name"));
         actionIds.push("edit_name");
     }
 
     const isOwner = selectedClaim.getOwner() === xuid
-    if (isOp || isOwner || selectedClaim.isCoOwner(xuid)) {
+    const canEditMembers = getPlayerPermissionState(selectedClaim, xuid, "edit_members");
+    if (canEditMembers) {
         buttons.push(new FormButton("Edit Members"));
         actionIds.push("edit_members");
     }
@@ -991,16 +993,23 @@ async function editClaimMemberOptions(target: ServerPlayer, claim: Claim, member
 }
 
 async function sendPermissionForm(target: ServerPlayer, currentPermissions: ClaimPermission = new Map(), title: string = "Edit Permissions"): Promise<ClaimPermission | undefined> {
-    const permDatas = getClaimPermissionDatas();
+    let permDatas = getClaimPermissionDatas();
     const toggles: FormToggle[] = [];
-    for (const permData of permDatas) {
-        let defaultValue = currentPermissions.get(permData.permissionName);
-        if (defaultValue === undefined) {
-            defaultValue = permData.defaultValue;
+
+    permDatas = permDatas.filter((value) => {
+        if (value.onlyCoOwner) {
+            return false;
         }
 
-        toggles.push(new FormToggle(permData.optionName, defaultValue));
-    }
+        let defaultValue = currentPermissions.get(value.permissionName);
+        if (defaultValue === undefined) {
+            defaultValue = value.defaultValue;
+        }
+
+        toggles.push(new FormToggle(value.optionName, defaultValue));
+
+        return true;
+    })
 
     const form = new CustomForm(title, toggles);
 

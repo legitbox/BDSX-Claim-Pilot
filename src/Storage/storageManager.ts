@@ -58,6 +58,10 @@ export function saveData() {
     updateStorageInNative(nativeStorage);
 }
 
+export function getPlayersWithStorage() {
+    return playerNameMap.entries();
+}
+
 export function generateSaveData() {
     const playersWithStorage = playerNameMap.entries();
 

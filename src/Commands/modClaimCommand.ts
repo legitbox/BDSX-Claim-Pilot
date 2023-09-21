@@ -13,7 +13,7 @@ import {
     getPlayerFreeBlocks,
     getPlayerMaxBlocks,
     removeFromMaxBlocks,
-    setMaxBlocks
+    setMaxBlocks, setUsedBlocks
 } from "../claims/claimBlocksManager";
 import {ServerPlayer} from "bdsx/bds/player";
 import {FormButton, SimpleForm} from "bdsx/bds/form";
@@ -26,6 +26,7 @@ import {
 } from "./commandUtils";
 import isDecayed = decay.isDecayed;
 import {getName} from "../Storage/storageManager";
+import {getOwnedClaims} from "../claims/claim";
 
 events.serverOpen.on(() => {
     const fclaimCommandConfig = CONFIG.commandOptions.fclaim;
@@ -128,6 +129,26 @@ events.serverOpen.on(() => {
                     target: PlayerCommandSelector,
                 })
         }
+
+        if (fclaimCommandConfig.subcommandOptions.fixPlayerBlocksCommandEnabled) {
+            fclaimCommand
+                .overload((params, origin, output) => {
+                    const targets = params.target.newResults(origin);
+                    if (targets.length === 0) {
+                        output.error("No targets matched selector");
+                        return;
+                    }
+
+                    for (const target of targets) {
+                        fixPlayerBlocks(target.getXuid());
+
+                        output.success(`§e${target.getName()}'s§a block count has been updated based on their current claims!`);
+                    }
+                }, {
+                    options: command.enum("options.fix", "fix"),
+                    target: PlayerCommandSelector,
+                })
+        }
     }
 })
 
@@ -147,6 +168,11 @@ async function sendModClaimCommandForm(target: ServerPlayer) {
         actionIds.push("toggle_server_builder");
     }
 
+    if (fclaimCommandConfig.subcommandOptions.fixPlayerBlocksCommandEnabled) {
+        buttons.push(new FormButton("Fix Player Block Count"));
+        actionIds.push("fix_blocks");
+    }
+
     if (buttons.length === 0) {
         target.sendMessage(`§cNo form options to choose from!`);
         return;
@@ -161,17 +187,30 @@ async function sendModClaimCommandForm(target: ServerPlayer) {
                 return;
             }
 
+            let selectedPlayerXuid;
+
             switch (actionIds[data.response]) {
+                case "fix_blocks":
+                    selectedPlayerXuid = await sendSelectOnlinePlayerForm(target);
+                    if (selectedPlayerXuid === undefined) {
+                        break;
+                    }
+
+                    fixPlayerBlocks(selectedPlayerXuid);
+
+                    target.sendMessage(`§e${getName(selectedPlayerXuid)}'s§a block count has been updated based on their current claims!`);
+
+                    break;
                 case "toggle_server_builder":
                     handleToggleServerClaimBuilder(target);
                     break;
                 case "edit_player":
-                    const selectedPlayer = await sendSelectOnlinePlayerForm(target);
-                    if (selectedPlayer === undefined) {
+                    selectedPlayerXuid = await sendSelectOnlinePlayerForm(target);
+                    if (selectedPlayerXuid === undefined) {
                         break;
                     }
 
-                    await handleEditPlayerOptions(target, selectedPlayer);
+                    await handleEditPlayerOptions(target, selectedPlayerXuid);
             }
 
             resolve(undefined);
@@ -328,4 +367,17 @@ async function sendNumberInputForm(target: ServerPlayer, title: string, descript
     }
 
     return value;
+}
+
+// This will update the players `used blocks` to match the blocks used by their claims
+// This is specifically going to be apart of a command, calling it via functions leads to issues when a claim has yet to be registered
+export function fixPlayerBlocks(playerXuid: string) {
+    const ownedClaims = getOwnedClaims(playerXuid);
+
+    let totalBlocksUsed = 0;
+    for (const claim of ownedClaims) {
+        totalBlocksUsed += claim.totalBlocks();
+    }
+
+    setUsedBlocks(playerXuid, totalBlocksUsed);
 }

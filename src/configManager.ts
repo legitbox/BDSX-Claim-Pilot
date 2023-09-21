@@ -15,210 +15,7 @@ import {ClaimPilotLoadedEvent} from "./events/onLoadedEvent";
 
 const CONFIG_PATH = __dirname + '\\..\\config.json';
 
-export interface Config {
-    wandFireRate: number;
-    wandItemId: string;
-    visualiseParticle: string;
-    visualiserEnabled: boolean;
-    visualiserLineDensity: number;
-    claimIdLength: number;
-    claimMinimumWidth: number;
-    claimMinimumLength: number;
-    claimMinimumHeight: number;
-    claimMinimumBlocks: number;
-    claimDisableExplosions: boolean;
-    visualizerUpdateRate: number;
-    claimUpdateRate: number;
-    defaultMaxClaimBlocks: number;
-    allowedClaimDimension: {
-        Overworld: boolean,
-        Nether: boolean,
-        End: boolean,
-    };
-    giveWandCooldown: number;
-    wandNbtEnabled: boolean;
-    wandNameEnabled: boolean;
-    wandTestByNameEnabled: boolean;
-    wandLoreEnabled: boolean;
-    wandTestByLoreEnabled: boolean;
-    wandName: string;
-    wandLore: string[];
-    playtimeUpdateInterval: number;
-    playtimeBlockRewardEnabled: boolean;
-    blockPayoutInterval: number;
-    blockRewardAmount: number;
-    commandOptions: {
-        claim: {
-            isEnabled: boolean;
-            commandName: string;
-            aliases: string[];
-            quickFormEnabled: boolean;
-            subcommandOptions: {
-                checkBlocksCommandEnabled: boolean;
-                cancelClaimCreationCommandEnabled: boolean;
-                giveWandCommandEnabled: boolean;
-                editClaimCommandEnabled: boolean;
-            }
-        };
-        fclaim: {
-            isEnabled: boolean;
-            commandName: string;
-            aliases: string[];
-            quickFormEnabled: boolean;
-            subcommandOptions: {
-                editPlayerBlocksCommandEnabled: boolean;
-                serverClaimCreationModeToggleCommandEnabled: boolean;
-            }
-        }
-        playtime: {
-            isEnabled: boolean,
-            commandName: string,
-            aliases: string[],
-            quickFormEnabled: boolean,
-            subcommandOptions: {
-                checkPlaytimeCommandEnabled: boolean,
-                checkOtherPlayerPlaytimeCommandEnabled: boolean,
-            }
-        }
-        config: {
-            isEnabled: boolean;
-            commandName: string;
-            aliases: string[];
-            subcommandOptions: {
-                editQuickConfigCommandEnabled: boolean;
-            }
-        }
-    }
-}
-
-export let CONFIG: Config;
-
-const configOverrides: Map<string, any> = new Map(); // Key: permission.key Value: Permission value
-
-export enum ConfigOverrideResult {
-    Success,
-    InvalidKey,
-    OverlappingOverride,
-}
-
-export function registerConfigOverride(permissionKey: string, forcedValue: any) {
-    const keyChain = permissionKey.split(".");
-
-    let defaultConfig: any = createDefaultConfig();
-    let lastCheckedValue: any = undefined;
-    for (const [index, key] of keyChain.entries()) {
-        if (index === 0) {
-            lastCheckedValue = defaultConfig[key];
-        } else {
-            lastCheckedValue = lastCheckedValue[key];
-        }
-
-        if (lastCheckedValue === undefined) {
-            return ConfigOverrideResult.InvalidKey;
-        }
-    }
-
-    const existingOverride = configOverrides.get(permissionKey);
-    if (existingOverride !== undefined) {
-        if (forcedValue !== existingOverride) {
-            return ConfigOverrideResult.OverlappingOverride;
-        }
-    } else {
-        configOverrides.set(permissionKey, forcedValue);
-    }
-
-    return ConfigOverrideResult.Success
-}
-
-events.serverLoading.on(() => {
-    if (isFileSync(CONFIG_PATH)) {
-        CONFIG = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
-
-        const defaultConfig = createDefaultConfig();
-        const updatedConfig = createUpdatedObjectIfKeysIfNotEqual(CONFIG, defaultConfig);
-
-        if (updatedConfig !== undefined) {
-            CONFIG = updatedConfig;
-            writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
-        }
-    } else {
-        CONFIG = createDefaultConfig();
-
-        writeFileSync(CONFIG_PATH, JSON.stringify(CONFIG, null, 4));
-    }
-
-    // Handle config overrides
-    for (const [permissionKey, value] of configOverrides.entries()) {
-        setValueAtPermissionKey(permissionKey, value);
-    }
-
-    fireEvent(ClaimPilotLoadedEvent.ID, undefined);
-})
-
-function setValueAtPermissionKey(permissionKey: string, value: any) {
-    const keys = permissionKey.split(".");
-    CONFIG = setValueInConfig(CONFIG, keys, value);
-}
-
-function setValueInConfig(config: any, keys: string[], value: any): Config {
-    const key = keys.shift();
-
-    if (!key) {
-        // Reached the final key, set the value
-        return value;
-    }
-
-    // Check if the key exists in the config
-    if (key in config) {
-        // If the current key exists, recursively traverse deeper into the object
-        config[key] = setValueInConfig(config[key], keys, value);
-    } else {
-        throw new Error(`Invalid key: ${key}`);
-    }
-
-    return config;
-}
-
-events.serverOpen.on(() => {
-    updateConfigInNative(NativeConfigObject.uglyConstruct());
-})
-
-function createUpdatedObjectIfKeysIfNotEqual(obj: any, exampleObj: any) {
-    // Goal: Should return an OBJ that A. Adds missing keys from exampleObj and B. Removes keys not in exampleObj
-    // NOTE: This will not validate types of params, just that they exist.
-    const newObject: any = {}
-
-    const exampleObjKeys = Object.keys(exampleObj);
-
-    let hadToBeUpdated = false;
-    for (const key of exampleObjKeys) {
-        const objVal = obj[key];
-        const exampleObjVal = exampleObj[key];
-
-        if (objVal === undefined) {
-            hadToBeUpdated = true;
-            newObject[key] = exampleObjVal;
-        } else if (typeof exampleObjVal === "object") {
-            const res = createUpdatedObjectIfKeysIfNotEqual(objVal, exampleObjVal);
-            if (res === undefined) {
-                newObject[key] = objVal;
-            } else {
-                newObject[key] = res;
-                hadToBeUpdated = true;
-            }
-        } else {
-            newObject[key] = objVal;
-        }
-    }
-
-    if (!hadToBeUpdated) {
-        return undefined;
-    }
-
-    return newObject;
-}
-
-function createDefaultConfig(): Config {
+function createClaimPilotConfigDefault(): Config {
     return {
         wandFireRate: 500,
         wandItemId: 'minecraft:stick',
@@ -273,7 +70,8 @@ function createDefaultConfig(): Config {
                 quickFormEnabled: true,
                 subcommandOptions: {
                     editPlayerBlocksCommandEnabled: true,
-                    serverClaimCreationModeToggleCommandEnabled: true
+                    serverClaimCreationModeToggleCommandEnabled: true,
+                    fixPlayerBlocksCommandEnabled: true,
                 }
             },
             playtime: {
@@ -296,6 +94,265 @@ function createDefaultConfig(): Config {
             }
         }
     }
+}
+
+export interface Config {
+    wandFireRate: number;
+    wandItemId: string;
+    visualiseParticle: string;
+    visualiserEnabled: boolean;
+    visualiserLineDensity: number;
+    claimIdLength: number;
+    claimMinimumWidth: number;
+    claimMinimumLength: number;
+    claimMinimumHeight: number;
+    claimMinimumBlocks: number;
+    claimDisableExplosions: boolean;
+    visualizerUpdateRate: number;
+    claimUpdateRate: number;
+    defaultMaxClaimBlocks: number;
+    allowedClaimDimension: {
+        Overworld: boolean,
+        Nether: boolean,
+        End: boolean,
+    };
+    giveWandCooldown: number;
+    wandNbtEnabled: boolean;
+    wandNameEnabled: boolean;
+    wandTestByNameEnabled: boolean;
+    wandLoreEnabled: boolean;
+    wandTestByLoreEnabled: boolean;
+    wandName: string;
+    wandLore: string[];
+    playtimeUpdateInterval: number;
+    playtimeBlockRewardEnabled: boolean;
+    blockPayoutInterval: number;
+    blockRewardAmount: number;
+    commandOptions: {
+        claim: {
+            isEnabled: boolean;
+            commandName: string;
+            aliases: string[];
+            quickFormEnabled: boolean;
+            subcommandOptions: {
+                checkBlocksCommandEnabled: boolean;
+                cancelClaimCreationCommandEnabled: boolean;
+                giveWandCommandEnabled: boolean;
+                editClaimCommandEnabled: boolean;
+            }
+        };
+        fclaim: {
+            isEnabled: boolean;
+            commandName: string;
+            aliases: string[];
+            quickFormEnabled: boolean;
+            subcommandOptions: {
+                editPlayerBlocksCommandEnabled: boolean;
+                serverClaimCreationModeToggleCommandEnabled: boolean;
+                fixPlayerBlocksCommandEnabled: boolean;
+            }
+        }
+        playtime: {
+            isEnabled: boolean,
+            commandName: string,
+            aliases: string[],
+            quickFormEnabled: boolean,
+            subcommandOptions: {
+                checkPlaytimeCommandEnabled: boolean,
+                checkOtherPlayerPlaytimeCommandEnabled: boolean,
+            }
+        }
+        config: {
+            isEnabled: boolean;
+            commandName: string;
+            aliases: string[];
+            subcommandOptions: {
+                editQuickConfigCommandEnabled: boolean;
+            }
+        }
+    }
+}
+
+export let CONFIG: Config;
+
+const configOverrides: Map<string, any> = new Map(); // Key: permission.key Value: Permission value
+const configDefaultOverrides: Map<string, any> = new Map(); // Key: permission.key Value: Permission Default Value
+
+export enum ConfigOverrideResult {
+    Success,
+    InvalidKey,
+    OverlappingOverride,
+}
+
+export function registerConfigDefaultOverride(permissionKey: string, defaultValue: any) {
+    configDefaultOverrides.set(permissionKey, defaultValue);
+}
+
+export function registerConfigOverride(permissionKey: string, forcedValue: any) {
+    const keyChain = permissionKey.split(".");
+
+    let defaultConfig: any = createDefaultConfig();
+    let lastCheckedValue: any = undefined;
+    for (const [index, key] of keyChain.entries()) {
+        if (index === 0) {
+            lastCheckedValue = defaultConfig[key];
+        } else {
+            lastCheckedValue = lastCheckedValue[key];
+        }
+
+        if (lastCheckedValue === undefined) {
+            return ConfigOverrideResult.InvalidKey;
+        }
+    }
+
+    const existingOverride = configOverrides.get(permissionKey);
+    if (existingOverride !== undefined) {
+        if (forcedValue !== existingOverride) {
+            return ConfigOverrideResult.OverlappingOverride;
+        }
+    } else {
+        configOverrides.set(permissionKey, forcedValue);
+    }
+
+    return ConfigOverrideResult.Success
+}
+
+events.serverLoading.on(() => {
+    if (isFileSync(CONFIG_PATH)) {
+        CONFIG = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
+
+        const defaultConfig = createDefaultConfig();
+        let updatedConfig = createUpdatedObjectIfKeysIfNotEqual(CONFIG, defaultConfig);
+
+        if (updatedConfig !== undefined) {
+            CONFIG = updatedConfig;
+        }
+    } else {
+        CONFIG = createDefaultConfig();
+    }
+
+    const writingConfig = createConfigForWrite(CONFIG);
+    writeFileSync(CONFIG_PATH, JSON.stringify(writingConfig, null, 4));
+
+    CONFIG = checkAndUpdateConfig(CONFIG);
+
+    fireEvent(ClaimPilotLoadedEvent.ID, undefined);
+})
+
+function setValueInConfig(config: any, keys: string[], value: any): Config {
+    const key = keys.shift();
+
+    if (!key) {
+        return value;
+    }
+
+    if (key in config) {
+        config[key] = setValueInConfig(config[key], keys, value);
+    } else {
+        throw new Error(`Invalid key: ${key}`.red);
+    }
+
+    return config;
+}
+
+events.serverOpen.on(() => {
+    updateConfigInNative(NativeConfigObject.uglyConstruct());
+})
+
+function createUpdatedObjectIfKeysIfNotEqual(obj: any, exampleObj: any) {
+    // Goal: Should return an OBJ that A. Adds missing keys from exampleObj and B. Removes keys not in exampleObj
+    // NOTE: This will not validate types of params, just that they exist.
+    const newObject: any = {}
+
+    const exampleObjKeys = Object.keys(exampleObj);
+
+    let hadToBeUpdated = false;
+    for (const key of exampleObjKeys) {
+        const objVal = obj[key];
+        const exampleObjVal = exampleObj[key];
+
+        if (objVal === undefined) {
+            hadToBeUpdated = true;
+            newObject[key] = exampleObjVal;
+        } else if (typeof exampleObjVal === "object") {
+            const res = createUpdatedObjectIfKeysIfNotEqual(objVal, exampleObjVal);
+            if (res === undefined) {
+                newObject[key] = objVal;
+            } else {
+                newObject[key] = res;
+                hadToBeUpdated = true;
+            }
+        } else {
+            newObject[key] = objVal;
+        }
+    }
+
+    if (!hadToBeUpdated) {
+        return undefined;
+    }
+
+    return newObject;
+}
+
+function createDefaultConfig(): Config {
+    let defaultConfig: any = createClaimPilotConfigDefault();
+
+    for (const [key, override] of configDefaultOverrides) {
+        const keyChain = key.split(".");
+
+        setValueInConfig(defaultConfig, keyChain, override);
+    }
+
+    defaultConfig = checkAndUpdateConfig(defaultConfig);
+
+    return defaultConfig;
+}
+
+function checkAndUpdateConfig(config: any, defaultConfig?: any, currentKeyChain?: string) {
+    if (defaultConfig === undefined) {
+        defaultConfig = createClaimPilotConfigDefault();
+    }
+
+    const keys = Object.keys(config);
+    for (const key of keys) {
+        let newKeyChain;
+        if (currentKeyChain === undefined) {
+            newKeyChain = key;
+        } else {
+            newKeyChain = `${currentKeyChain}.${key}`;
+        }
+
+        const forcedOverriddenValue = configOverrides.get(newKeyChain);
+        if (forcedOverriddenValue !== undefined) {
+            config[key] = forcedOverriddenValue;
+            continue;
+        }
+
+        const existingValue = config[key];
+        const defaultValue = defaultConfig[key];
+
+        const defaultOverriddenValue = configDefaultOverrides.get(newKeyChain);
+        const isValueObject = typeof defaultValue === "object" && !(defaultValue instanceof Array);
+
+
+        if (!areObjectsEqual(existingValue, defaultValue)) {
+            if (!isValueObject) {
+                continue;
+            }
+
+            if (defaultOverriddenValue !== undefined) {
+                throw `ERROR: Cant Override Object Property In Config! Key: ${newKeyChain}`.red;
+            }
+        }
+
+        if (defaultOverriddenValue !== undefined) {
+            config[key] = defaultOverriddenValue;
+        } else if (!(existingValue instanceof Array) && typeof existingValue === "object") {
+            config[key] = checkAndUpdateConfig(existingValue, defaultValue, newKeyChain);
+        }
+    }
+
+    return config;
 }
 
 export function sendConfigForm(player: ServerPlayer) {
@@ -388,4 +445,104 @@ export function sendConfigForm(player: ServerPlayer) {
 
         updateConfigInNative(NativeConfigObject.uglyConstruct());
     })
+}
+
+function areObjectsEqual(objectOne: any, objectTwo: any) {
+    const objectOneType = typeof objectOne;
+    const objectTwoType = typeof objectTwo;
+
+    if (objectOneType !== objectTwoType) {
+        return false;
+    }
+
+    const isOOneArray = objectOne instanceof Array;
+    const isOTwoArray = objectTwo instanceof Array;
+
+    if (isOOneArray !== isOTwoArray) {
+        return false;
+    }
+
+    if (
+        objectOneType === "string" ||
+        objectOneType === "number" ||
+        objectOneType === "boolean"
+    ) {
+        return objectOne === objectTwo;
+    } else if (isOOneArray) {
+        return areArraysEqual(objectOne, objectTwo);
+    } else if (objectOneType === "object") {
+        const oOneKeys = Object.keys(objectOne);
+        const oTwoKeys = Object.keys(objectTwo);
+
+        if (oOneKeys.length !== oTwoKeys.length || !areArraysEqual(oOneKeys, oTwoKeys)) {
+            return false;
+        }
+
+        let isEqual = true;
+        for (const key of oOneKeys) {
+            const oOneValue = objectOne[key];
+            const oTwoValue = objectTwo[key];
+
+            const ret = areObjectsEqual(oOneValue, oTwoValue);
+            if (!ret) {
+                isEqual = false;
+                break;
+            }
+        }
+
+        return isEqual
+    } else if (objectOneType === "undefined") {
+        return false;
+    } else {
+        throw `ERROR: Unsupported Type ${objectOneType}`.red;
+    }
+}
+
+function areArraysEqual(arrayOne: any[], arrayTwo: any[]) {
+    if (arrayOne.length !== arrayTwo.length) {
+        return false;
+    }
+
+    let isEqual = true;
+    for (let i = 0; i < arrayOne.length; i++) {
+        const arrayOneValue = arrayOne[i];
+        const arrayTwoValue = arrayTwo[i];
+
+        if (!areObjectsEqual(arrayOneValue, arrayTwoValue)) {
+            isEqual = false;
+            break;
+        }
+    }
+
+    return isEqual;
+}
+
+function createConfigForWrite(config: any, currentKeyChain?: string) {
+    let writeableConfig: any = {};
+
+    const keys = Object.keys(config);
+    for (const key of keys) {
+        let newKeyChain;
+        if (currentKeyChain === undefined) {
+            newKeyChain = key;
+        } else {
+            newKeyChain = `${currentKeyChain}.${key}`;
+        }
+
+        const forcedOverride = configOverrides.get(newKeyChain);
+        if (forcedOverride !== undefined) {
+            continue;
+        }
+
+        const existingValue = config[key];
+        const isObject = typeof existingValue === "object" && !(existingValue instanceof Array);
+
+        if (isObject) {
+            writeableConfig[key] = createConfigForWrite(existingValue, newKeyChain);
+        } else {
+            writeableConfig[key] = existingValue;
+        }
+    }
+
+    return writeableConfig;
 }

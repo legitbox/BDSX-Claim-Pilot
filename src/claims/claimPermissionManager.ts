@@ -6,11 +6,13 @@ export class ClaimPermissionData {
     permissionName: string;
     defaultValue: boolean;
     optionName: string;
+    onlyCoOwner: boolean;
 
-    constructor(permissionName: string, defaultValue: boolean, optionName: string) {
+    constructor(permissionName: string, defaultValue: boolean, optionName: string, onlyCoOwner: boolean) {
         this.permissionName = permissionName;
         this.defaultValue = defaultValue;
         this.optionName = optionName;
+        this.onlyCoOwner = onlyCoOwner;
     }
 }
 
@@ -24,8 +26,8 @@ export function createDefaultClaimPermission(): ClaimPermission {
     return permissions;
 }
 
-export function registerPermission(permissionName: string, defaultValue: boolean, optionName: string) {
-    const permData = new ClaimPermissionData(permissionName, defaultValue, optionName);
+export function registerPermission(permissionName: string, defaultValue: boolean, optionName: string, onlyCoOwner: boolean) {
+    const permData = new ClaimPermissionData(permissionName, defaultValue, optionName, onlyCoOwner);
 
     ClaimPermissionDatas.set(permissionName, permData);
 }
@@ -57,4 +59,5 @@ export function getPermData(permission: string) {
 }
 
 // Area for registering built in permissions
-registerPermission("edit_name", false, "Can Edit Claim Name");
+registerPermission("edit_name", false, "Can Edit Claim Name", false);
+registerPermission("edit_members", false, "Can Edit Members", true);

@@ -1,6 +1,5 @@
 import {CONFIG} from "../configManager";
 import {saveData} from "../Storage/storageManager";
-import {getOwnedClaims} from "./claim";
 
 export class BlockInfo {
     addedMaxBlocks: number;
@@ -112,6 +111,21 @@ export function setPlayerBlockInfo(playerXuid: string, info: BlockInfo, shouldSa
     if (shouldSave) {
         saveData();
     }
+}
+
+export function setUsedBlocks(playerXuid: string, amount: number, shouldSave: boolean = true) {
+    let info = playerBlockMap.get(playerXuid);
+    if (info === undefined) {
+        info = setPlayerToDefaultBlockInfo(playerXuid);
+    }
+
+    info.usedBlocks = amount;
+
+    if (shouldSave) {
+        saveData();
+    }
+
+    return getPlayerUsedBlocks(playerXuid);
 }
 
 export function setMaxBlocks(playerXuid: string, amount: number, shouldSave: boolean = true) {

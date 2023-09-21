@@ -1,15 +1,16 @@
 import {SerializableVec3} from "../SerializableTypes/SerializableVec3";
-import {BoxCorners, generateID, getNumOfBlocksInBox, isPointInBox, organizeCorners} from "../utils";
+import {BoxCorners, generateID, getNumOfBlocksInBox, getOfflinePlayerOp, isPointInBox, organizeCorners} from "../utils";
 import {CONFIG} from "../configManager";
 import {VectorXYZ} from "bdsx/common";
 import {DimensionId} from "bdsx/bds/actor";
 import {saveData, updateNativeStorage} from "../Storage/storageManager";
 import {freeBlocksForPlayer} from "./claimBlocksManager";
 import {fireEvent} from "../events/eventStorage";
-import {ClaimPermission, updatePermissions} from "./claimPermissionManager";
+import {ClaimPermission, getPermData, updatePermissions} from "./claimPermissionManager";
 import {GroupCreatedEvent} from "../events/groupCreatedEvent";
 import {Vec3} from "bdsx/bds/blockpos";
 import {checkIfBoxOverlapsAnyClaim} from "../Native/dllManager";
+import {ClaimCreationEvent} from "../events/claimCreatedEvent";
 
 const claimMap: Map<string, Claim[]> = new Map(); // Key: OwnerXUID, value: Owned claims
 const claimGroups: Map<string, ClaimGroup[]> = new Map();
@@ -404,9 +405,14 @@ export function getOwnedGroups(playerXuid: string) {
     return groups;
 }
 
-export function deleteClaimGroup(group: ClaimGroup) {
+export function deleteClaimGroup(group: ClaimGroup, deleteClaims: boolean = false) {
     const claims = group.getClaims();
     for (const claim of claims) {
+        if (deleteClaims) {
+            deleteClaim(claim);
+            continue;
+        }
+
         claim.owner = group.ownerXuid;
         claim.setMemberPerms(group.members);
         claim.coOwners = group.coOwners;
@@ -558,10 +564,19 @@ export function registerClaim(claim: Claim) {
     claimMap.set(claim.owner, existingClaims);
 }
 
-export function registerNewServerClaim(name: string, pos1: SerializableVec3, pos2: SerializableVec3, dimensionId: DimensionId) {
+export async function registerNewServerClaim(name: string, pos1: SerializableVec3, pos2: SerializableVec3, dimensionId: DimensionId, creatorXuid: string) {
     let {cornerOne, cornerTwo} = organizeCorners(pos1, pos2);
 
     const claim = new Claim('SERVER', [], name, generateID(CONFIG.claimIdLength), cornerOne, cornerTwo, dimensionId);
+
+    const res = fireEvent(ClaimCreationEvent.ID, {claim, creatorXuid});
+    if (res instanceof Promise) {
+        await res;
+    }
+
+    if (!res) {
+        return undefined;
+    }
 
     let serverClaims = claimMap.get('SERVER');
     if (serverClaims === undefined) {
@@ -575,15 +590,15 @@ export function registerNewServerClaim(name: string, pos1: SerializableVec3, pos
     return claim;
 }
 
-export async function registerNewClaim(ownerXuid: string, name: string, pos1: SerializableVec3, pos2: SerializableVec3, dimensionId: DimensionId) {
+export async function registerNewClaim(creatorXuid: string, name: string, pos1: SerializableVec3, pos2: SerializableVec3, dimensionId: DimensionId) {
     // Creating direction consistent corners
     const {cornerOne, cornerTwo} = organizeCorners(pos1, pos2);
 
     const id = generateID(CONFIG.claimIdLength);
 
-    const claim = new Claim(ownerXuid, [], name, id, cornerOne, cornerTwo, dimensionId);
+    const claim = new Claim(creatorXuid, [], name, id, cornerOne, cornerTwo, dimensionId);
 
-    const eventRes = fireEvent('ClaimCreationEvent', {claim, ownerXuid});
+    const eventRes = fireEvent('ClaimCreationEvent', {claim, creatorXuid});
     let res;
     if (typeof eventRes === "boolean") {
         res = eventRes;
@@ -772,8 +787,17 @@ export function getClaimFromId(id: string) {
 }
 
 export function getPlayerPermissionState(claim: Claim | ClaimGroup, playerXuid: string, permission: string) {
-    if (claim.getOwner() === playerXuid || claim.isCoOwner(playerXuid)) {
+    const permData = getPermData(permission);
+    if (permData === undefined) {
+        return false;
+    }
+
+    if (claim.getOwner() === playerXuid || claim.isCoOwner(playerXuid) || getOfflinePlayerOp(playerXuid)) {
         return true;
+    }
+
+    if (permData.onlyCoOwner) {
+        return false;
     }
 
     const memberPermData = claim.getMemberPermissions(playerXuid);
