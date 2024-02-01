@@ -13,6 +13,9 @@ if you want for the studio to realease and feed the developers for one more day,
 
 https://ko-fi.com/lunatech
 
+# Native Code
+You can find the source code for the .dll used [here](https://github.com/legitbox/BCP-Untoasted)
+
 # Extra
 use the BDSX Claim Pilot Wand addon that is in the .zip file to get a blank item to use (the default is bamboo)
 https://github.com/legitbox/BDSX-Claim-Pilot/blob/toast/BDSX%20Claim%20Pilot%20Wand.zip

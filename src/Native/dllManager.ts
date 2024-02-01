@@ -17,6 +17,7 @@ const init = untoastedDll.getFunction(
     int32_t, // FBTickOffset
     int32_t, // BGetNameOffset
     int32_t, // BSGetDimensionId
+    int32_t, // PFCprb
 );
 
 export const updateStorageInNative = untoastedDll.getFunction(
@@ -55,5 +56,6 @@ events.serverOpen.on(() => {
         pdbcache.search('?tick@FireBlock@@UEBAXAEAVBlockSource@@AEBVBlockPos@@AEAVRandom@@@Z'),
         pdbcache.search('?getName@Block@@QEBAAEBVHashedString@@XZ'),
         pdbcache.search('?getDimensionId@BlockSource@@UEBA?AV?$AutomaticID@VDimension@@H@@XZ'),
+        pdbcache.search('?canPortalReplaceBlock@PortalForcer@@SA_NAEAVBlockSource@@AEBVBlockPos@@@Z'),
     );
 })
